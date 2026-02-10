@@ -14,3 +14,17 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+# Service Marketplace App
+
+A Flutter-based marketplace connecting users with local service providers.
+
+## Tech Stack
+- Flutter
+- Provider (MVVM)
+- Supabase
+- Razorpay
+
+## Architecture
+MVVM + Repository Pattern
+
