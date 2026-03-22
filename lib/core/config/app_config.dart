@@ -1,0 +1,3 @@
+// anon key :eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtdm9xYWh0bXBhb2R0dXJsd2F0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMzA0OTUsImV4cCI6MjA4NjYwNjQ5NX0.Gq-WYYakay-gd41OGx0eTrkruPM8GattETEV-4tAlPU
+
+// url : https://lmvoqahtmpaodturlwat.supabase.co

@@ -1,0 +1,10 @@
+﻿Analyzing labrix...                                             
+
+   info - Unnecessary override - lib\data\models\user_model.dart:22:24 - unnecessary_overrides
+   info - Parameters ''id', 'role', 'name', 'phone', and 'location'' could be super parameters - lib\data\models\worker_model.dart:10:3 - use_super_parameters
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\auth\view\login_screen.dart:126:23 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\auth\view\login_screen.dart:134:42 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\auth\view\role_selection_screen.dart:85:35 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\features\home\view\home_screen.dart:130:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\home\view\worker_detail_screen.dart:96:19 - curly_braces_in_flow_control_structures
+
