@@ -19,12 +19,16 @@ class _UserProfileSetupScreenState extends State<UserProfileSetupScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
+  final _companyController = TextEditingController();
+  final _detailsController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _locationController.dispose();
+    _companyController.dispose();
+    _detailsController.dispose();
     super.dispose();
   }
 
@@ -32,6 +36,8 @@ class _UserProfileSetupScreenState extends State<UserProfileSetupScreen> {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
     final location = _locationController.text.trim();
+    final companyName = _companyController.text.trim();
+    final details = _detailsController.text.trim();
 
     if (name.isEmpty || phone.isEmpty || location.isEmpty) {
       ScaffoldMessenger.of(
@@ -52,6 +58,8 @@ class _UserProfileSetupScreenState extends State<UserProfileSetupScreen> {
       name: name,
       phone: phone,
       location: location,
+      companyName: companyName.isEmpty ? null : companyName,
+      details: details.isEmpty ? null : details,
     );
 
     final success = await profileVM.saveUserProfile(profile);
@@ -102,6 +110,18 @@ class _UserProfileSetupScreenState extends State<UserProfileSetupScreen> {
               controller: _locationController,
               hintText: 'Address / Location',
               prefixIcon: Icons.location_on,
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              controller: _companyController,
+              hintText: 'Company Name (Optional)',
+              prefixIcon: Icons.business,
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              controller: _detailsController,
+              hintText: 'Details / Description (Optional)',
+              prefixIcon: Icons.description,
             ),
             const SizedBox(height: 32),
             CustomButton(

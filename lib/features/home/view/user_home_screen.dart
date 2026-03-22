@@ -5,14 +5,14 @@ import '../viewmodel/home_viewmodel.dart';
 import '../widgets/category_tile.dart';
 import '../widgets/worker_card.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class UserHomeScreen extends StatefulWidget {
+  const UserHomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<UserHomeScreen> createState() => _UserHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _UserHomeScreenState extends State<UserHomeScreen> {
   String _searchQuery = '';
   String? _selectedCategory;
 

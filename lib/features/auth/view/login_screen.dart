@@ -5,7 +5,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../viewmodel/auth_viewmodel.dart';
+import '../viewmodel/profile_viewmodel.dart';
 import 'signup_screen.dart';
+import 'role_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,14 +43,24 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Navigate to Home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              const MainScreen(),
-        ),
-      );
+      final user = authVM.currentUser;
+      if (user != null) {
+        final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
+        await profileVM.loadProfile(user.id);
+        if (!mounted) return;
+
+        if (profileVM.currentProfile == null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -122,14 +134,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   final success = await authVM.signInWithGoogle();
                   if (!mounted) return;
                   if (success) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Center(child: Text('Home Screen')),
-                        ),
-                      ),
-                    );
+                    final user = authVM.currentUser;
+                    if (user != null) {
+                      final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
+                      await profileVM.loadProfile(user.id);
+                      if (!mounted) return;
+
+                      if (profileVM.currentProfile == null) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+                        );
+                      } else {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MainScreen()),
+                        );
+                      }
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
-import 'home_screen.dart';
+import 'user_home_screen.dart';
+import 'worker_home_screen.dart';
 import '../../booking/view/user_bookings_screen.dart';
 import '../../booking/view/worker_bookings_screen.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
 import '../../chat/view/chat_list_screen.dart';
+import '../../auth/view/profile_settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -23,10 +25,10 @@ class _MainScreenState extends State<MainScreen> {
     final isWorker = profileVM.currentProfile?.role == 'worker';
 
     final pages = [
-      const HomeScreen(),
+      isWorker ? const WorkerHomeScreen() : const UserHomeScreen(),
       isWorker ? const WorkerBookingsScreen() : const UserBookingsScreen(),
       const ChatListScreen(),
-      const Scaffold(body: Center(child: Text('Profile Settings'))),
+      const ProfileSettingsScreen(),
     ];
 
     return Scaffold(

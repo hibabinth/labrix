@@ -4,6 +4,8 @@ class ProfileModel {
   final String name;
   final String phone;
   final String location;
+  final String? companyName;
+  final String? details;
 
   ProfileModel({
     required this.id,
@@ -11,6 +13,8 @@ class ProfileModel {
     required this.name,
     required this.phone,
     required this.location,
+    this.companyName,
+    this.details,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +24,8 @@ class ProfileModel {
       name: json['name'] ?? '',
       phone: json['phone'] ?? '',
       location: json['location'] ?? '',
+      companyName: json['company_name'],
+      details: json['details'],
     );
   }
 
@@ -30,6 +36,8 @@ class ProfileModel {
       'name': name,
       'phone': phone,
       'location': location,
+      if (companyName != null) 'company_name': companyName,
+      if (details != null) 'details': details,
     };
   }
 }

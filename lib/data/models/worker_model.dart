@@ -6,6 +6,9 @@ class WorkerModel extends ProfileModel {
   final String priceRange;
   final bool isOnline;
   final bool isVerified;
+  final List<String> skills;
+  final String? education;
+  final List<String> portfolioUrls;
 
   WorkerModel({
     required String id,
@@ -18,6 +21,9 @@ class WorkerModel extends ProfileModel {
     required this.priceRange,
     required this.isOnline,
     required this.isVerified,
+    this.skills = const [],
+    this.education,
+    this.portfolioUrls = const [],
   }) : super(id: id, role: role, name: name, phone: phone, location: location);
 
   factory WorkerModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +39,9 @@ class WorkerModel extends ProfileModel {
       priceRange: json['price_range'] ?? '',
       isOnline: json['is_online'] ?? true,
       isVerified: json['is_verified'] ?? false,
+      skills: List<String>.from(json['skills'] ?? []),
+      education: json['education'] as String?,
+      portfolioUrls: List<String>.from(json['portfolio_urls'] ?? []),
     );
   }
 
@@ -45,6 +54,9 @@ class WorkerModel extends ProfileModel {
       'price_range': priceRange,
       'is_online': isOnline,
       'is_verified': isVerified,
+      'skills': skills,
+      'education': education,
+      'portfolio_urls': portfolioUrls,
     });
     return data;
   }
