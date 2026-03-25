@@ -51,46 +51,82 @@ class ProfileSettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Center Profile Image with Edit Overlay
-            Center(
+            // Cover and Avatar Section
+            SizedBox(
+              height: 200,
               child: Stack(
+                alignment: Alignment.bottomCenter,
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
-                    backgroundImage: profile.imageUrl != null 
-                        ? NetworkImage(profile.imageUrl!) 
-                        : null,
-                    child: profile.imageUrl == null
-                        ? const Icon(Icons.person, size: 50, color: AppColors.primaryColor)
-                        : null,
+                  // Cover Photo
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      height: 140,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(16),
+                        image: profile.coverImageUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(profile.coverImageUrl!), 
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: profile.coverImageUrl == null
+                          ? const Center(
+                              child: Icon(Icons.panorama, color: Colors.grey, size: 40),
+                            )
+                          : null,
+                    ),
                   ),
+                  // Avatar Photo with Edit Overlay
                   Positioned(
                     bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditProfileScreen(profile: profile),
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 46,
+                            backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
+                            backgroundImage: profile.imageUrl != null 
+                                ? NetworkImage(profile.imageUrl!) 
+                                : null,
+                            child: profile.imageUrl == null
+                                ? const Icon(Icons.person, size: 40, color: AppColors.primaryColor)
+                                : null,
                           ),
-                        ).then((_) {
-                          // Optionally reload profile
-                          if (authVM.currentUser?.id != null) {
-                            profileVM.loadProfile(authVM.currentUser!.id);
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.edit, size: 16, color: Colors.white),
-                      ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditProfileScreen(profile: profile),
+                                ),
+                              ).then((_) {
+                                if (authVM.currentUser?.id != null) {
+                                  profileVM.loadProfile(authVM.currentUser!.id);
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -98,7 +134,7 @@ class ProfileSettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Profile Name
+            // Profile Name and Headline
             Text(
               profile.name,
               style: const TextStyle(
@@ -107,9 +143,20 @@ class ProfileSettingsScreen extends StatelessWidget {
                 color: AppColors.textPrimaryColor,
               ),
             ),
-            if (profile.role == 'worker') ...[
-              const SizedBox(height: 4),
+            if (profile.headline != null && profile.headline!.isNotEmpty) ...[
+              const SizedBox(height: 8),
               Text(
+                profile.headline!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else if (profile.role == 'worker') ...[
+              const SizedBox(height: 8),
+              const Text(
                 'Worker Profile',
                 style: TextStyle(
                   color: AppColors.primaryColor,

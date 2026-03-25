@@ -11,6 +11,9 @@ class ProfileModel {
   final int following;
   final String? aboutMe;
   final List<String> interests;
+  final String? coverImageUrl;
+  final String? headline;
+  final String? dob;
 
   ProfileModel({
     required this.id,
@@ -25,6 +28,9 @@ class ProfileModel {
     this.following = 0,
     this.aboutMe,
     this.interests = const [],
+    this.coverImageUrl,
+    this.headline,
+    this.dob,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +47,9 @@ class ProfileModel {
       following: json['following'] ?? 0,
       aboutMe: json['about_me'],
       interests: List<String>.from(json['interests'] ?? []),
+      coverImageUrl: json['cover_image_url'],
+      headline: json['headline'],
+      dob: json['dob'],
     );
   }
 
@@ -58,6 +67,9 @@ class ProfileModel {
       'following': following,
       if (aboutMe != null) 'about_me': aboutMe,
       'interests': interests,
+      if (coverImageUrl != null) 'cover_image_url': coverImageUrl,
+      if (headline != null) 'headline': headline,
+      if (dob != null) 'dob': dob,
     };
   }
 }

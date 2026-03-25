@@ -69,4 +69,17 @@ class ProfileViewModel extends ChangeNotifier {
       return null;
     }
   }
+
+  Future<String?> uploadCoverImage(String userId, dynamic imageFile) async {
+    _setLoading(true);
+    try {
+      final url = await _repo.uploadCoverImage(userId, imageFile);
+      _setLoading(false);
+      return url;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return null;
+    }
+  }
 }

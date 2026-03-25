@@ -77,6 +77,24 @@ class ProfileRepository {
     }
   }
 
+  Future<String?> uploadCoverImage(String userId, File imageFile) async {
+    try {
+      final fileExt = imageFile.path.split('.').last;
+      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final storagePath = 'covers/$fileName';
+
+      await _supabase.storage.from('covers').upload(
+            storagePath,
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      return _supabase.storage.from('covers').getPublicUrl(storagePath);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // --- Utility Mock Actions for Functional Stats ---
   // In a production app, these would probably use RPC functions and junctions tables.
   
