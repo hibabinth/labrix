@@ -101,7 +101,7 @@ class AppTheme {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primaryColor,
-        unselectedItemColor: AppColors.textSecondaryColor.withOpacity(0.5),
+        unselectedItemColor: AppColors.textSecondaryColor.withValues(alpha: 0.5),
         showSelectedLabels: true,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
@@ -118,7 +118,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey.shade100,
         disabledColor: Colors.grey.shade300,
-        selectedColor: AppColors.primaryColor.withOpacity(0.1),
+        selectedColor: AppColors.primaryColor.withValues(alpha: 0.1),
         secondarySelectedColor: AppColors.primaryColor,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         labelStyle: const TextStyle(color: AppColors.textPrimaryColor, fontWeight: FontWeight.w500),

@@ -103,7 +103,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: InputDecoration(
                 prefixIcon: const Icon(
                   Icons.category,

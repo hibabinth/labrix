@@ -29,13 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     final authVM = Provider.of<AuthViewModel>(context, listen: false);
+    final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
@@ -45,24 +46,21 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       final user = authVM.currentUser;
       if (user != null) {
-        final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
         await profileVM.loadProfile(user.id);
         if (!mounted) return;
 
         if (profileVM.currentProfile == null) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+          navigator.pushReplacement(
+            MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
           );
         } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MainScreen()),
+          navigator.pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
           );
         }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(authVM.errorMessage ?? 'Login failed'),
           backgroundColor: AppColors.errorColor,
@@ -131,29 +129,30 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: () async {
+                  final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+
                   final success = await authVM.signInWithGoogle();
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (success) {
                     final user = authVM.currentUser;
                     if (user != null) {
-                      final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
                       await profileVM.loadProfile(user.id);
-                      if (!mounted) return;
+                      if (!context.mounted) return;
 
                       if (profileVM.currentProfile == null) {
-                        Navigator.pushReplacement(
-                          context,
+                        navigator.pushReplacement(
                           MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
                         );
                       } else {
-                        Navigator.pushReplacement(
-                          context,
+                        navigator.pushReplacement(
                           MaterialPageRoute(builder: (_) => const MainScreen()),
                         );
                       }
                     }
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           authVM.errorMessage ?? 'Google Sign-In failed',

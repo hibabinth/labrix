@@ -13,11 +13,11 @@ class WorkerModel extends ProfileModel {
   final int ratingCount;
 
   WorkerModel({
-    required String id,
-    required String role,
-    required String name,
-    required String phone,
-    required String location,
+    required super.id,
+    required super.role,
+    required super.name,
+    required super.phone,
+    required super.location,
     required this.category,
     required this.experienceYears,
     required this.priceRange,
@@ -26,25 +26,14 @@ class WorkerModel extends ProfileModel {
     this.skills = const [],
     this.education,
     this.portfolioUrls = const [],
-    String? imageUrl,
-    int followers = 0,
-    int following = 0,
-    String? aboutMe,
-    List<String> interests = const [],
+    super.imageUrl,
+    super.followers,
+    super.following,
+    super.aboutMe,
+    super.interests,
     this.rating = 0.0,
     this.ratingCount = 0,
-  }) : super(
-          id: id,
-          role: role,
-          name: name,
-          phone: phone,
-          location: location,
-          imageUrl: imageUrl,
-          followers: followers,
-          following: following,
-          aboutMe: aboutMe,
-          interests: interests,
-        );
+  });
 
   factory WorkerModel.fromJson(Map<String, dynamic> json) {
     // Handle nested 'profiles' object from Supabase joins

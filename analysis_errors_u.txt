@@ -1,0 +1,22 @@
+﻿Analyzing labrix...                                             
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\app_theme.dart:104:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\app_theme.dart:121:47 - deprecated_member_use
+   info - Unnecessary override - lib\data\models\user_model.dart:22:24 - unnecessary_overrides
+   info - Parameters ''id', 'role', 'name', 'phone', 'location', 'imageUrl', 'followers', 'following', 'aboutMe', and 'interests'' could be super parameters - lib\data\models\worker_model.dart:15:3 - use_super_parameters
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\auth\view\login_screen.dart:139:71 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\auth\view\login_screen.dart:145:27 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\auth\view\login_screen.dart:150:27 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\auth\view\login_screen.dart:156:42 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\auth\view\role_selection_screen.dart:85:35 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\home\view\worker_detail_screen.dart:78:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\home\view\worker_detail_screen.dart:80:44 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\features\home\view\worker_detail_screen.dart:174:19 - curly_braces_in_flow_control_structures
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\jobs\view\create_job_screen.dart:106:15 - deprecated_member_use
+   info - The local variable '_supabase' starts with an underscore - test_query.dart:14:9 - no_leading_underscores_for_local_identifiers
+   info - Don't invoke 'print' in production code - test_query.dart:17:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_query.dart:18:3 - avoid_print
+warning - Unused import: 'dart:convert' - test_query2.dart:1:8 - unused_import
+   info - The imported package 'http' isn't a dependency of the importing package - test_query2.dart:2:8 - depend_on_referenced_packages
+   info - Don't invoke 'print' in production code - test_query2.dart:10:3 - avoid_print
+

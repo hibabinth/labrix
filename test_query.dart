@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
@@ -11,9 +12,9 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  final _supabase = Supabase.instance.client;
+  final supabase = Supabase.instance.client;
 
-  final res = await _supabase.from('workers').select('*, profiles(*)');
+  final res = await supabase.from('workers').select('*, profiles(*)');
   print('RAW JSON RESPONSE:');
   print(res);
   exit(0);

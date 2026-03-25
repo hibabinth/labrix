@@ -18,6 +18,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _dobController;
   late TextEditingController _locationController;
+  late TextEditingController _aboutMeController;
   
   File? _selectedImage;
   bool _isUploading = false;
@@ -28,6 +29,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: widget.profile.name);
     _dobController = TextEditingController(text: '18 February, 2001'); // Mock DOB
     _locationController = TextEditingController(text: widget.profile.location);
+    _aboutMeController = TextEditingController(text: widget.profile.aboutMe ?? '');
   }
 
   @override
@@ -35,6 +37,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _dobController.dispose();
     _locationController.dispose();
+    _aboutMeController.dispose();
     super.dispose();
   }
 
@@ -73,7 +76,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       imageUrl: imageUrl,
       followers: widget.profile.followers,
       following: widget.profile.following,
-      aboutMe: widget.profile.aboutMe,
+      aboutMe: _aboutMeController.text.trim().isNotEmpty ? _aboutMeController.text.trim() : null,
       interests: widget.profile.interests,
       companyName: widget.profile.companyName,
       details: widget.profile.details,
@@ -155,6 +158,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               _buildTextField('Location', _locationController, Icons.location_on_outlined),
               const SizedBox(height: 16),
               _buildTextField('Interested Event', TextEditingController(text: 'Design; Art; Sports; Food'), Icons.local_activity_outlined, readOnly: true),
+              const SizedBox(height: 16),
+              _buildTextField('About Me', _aboutMeController, Icons.info_outline, maxLines: 4),
 
               const SizedBox(height: 48),
 
@@ -183,7 +188,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool readOnly = false}) {
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool readOnly = false, int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -195,6 +200,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         TextField(
           controller: controller,
           readOnly: readOnly,
+          maxLines: maxLines,
           decoration: InputDecoration(
             hintText: label,
             suffixIcon: Icon(icon, color: AppColors.textSecondaryColor, size: 20),

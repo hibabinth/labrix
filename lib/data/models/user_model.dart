@@ -18,8 +18,4 @@ class UserModel extends ProfileModel {
     );
   }
 
-  @override
-  Map<String, dynamic> toJson() {
-    return super.toJson();
-  }
 }

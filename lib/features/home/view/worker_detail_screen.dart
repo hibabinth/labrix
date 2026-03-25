@@ -36,10 +36,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       success = await repo.followUser(widget.worker.id, currentUserId);
     }
     
-    if (success && mounted) {
+    if (success && context.mounted) {
       setState(() => _isFollowing = !_isFollowing);
     }
-    if (mounted) setState(() => _isProcessingFollow = false);
+    if (context.mounted) setState(() => _isProcessingFollow = false);
   }
 
   void _showRatingDialog() {
@@ -74,10 +74,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
               onPressed: () async {
                 final success = await ProfileRepository().rateWorker(widget.worker.id, currentSelectedRating);
-                if (success && mounted) {
+                if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rating saved!')));
                 }
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Submit', style: TextStyle(color: Colors.white)),
             )
@@ -170,8 +170,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             const SizedBox(height: 16),
             Consumer<ReviewViewModel>(
               builder: (context, reviewVM, _) {
-                if (reviewVM.isLoading)
+                if (reviewVM.isLoading) {
                   return const Center(child: CircularProgressIndicator());
+                }
 
                 final rating = reviewVM.averageRating;
                 final total = reviewVM.workerReviews.length;
