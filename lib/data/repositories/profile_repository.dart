@@ -95,48 +95,39 @@ class ProfileRepository {
     }
   }
 
-  // --- Utility Mock Actions for Functional Stats ---
-  // In a production app, these would probably use RPC functions and junctions tables.
-  
+  // --- Relational Follower Actions ---
+
   Future<bool> followUser(String targetUserId, String currentUserId) async {
     try {
-      // Fetch target's current followers
-      final target = await getProfile(targetUserId);
-      if (target != null) {
-        await _supabase.from('profiles').update({
-          'followers': target.followers + 1
-        }).eq('id', targetUserId);
-      }
-      
-      // Fetch current user's following
-      final current = await getProfile(currentUserId);
-      if (current != null) {
-        await _supabase.from('profiles').update({
-          'following': current.following + 1
-        }).eq('id', currentUserId);
-      }
+      await _supabase.from('user_follows').insert({
+        'follower_id': currentUserId,
+        'following_id': targetUserId,
+      });
+      return true;
+    } catch (e) {
+      return false; // Could be uniqueness error if already followed
+    }
+  }
+
+  Future<bool> unfollowUser(String targetUserId, String currentUserId) async {
+    try {
+      await _supabase.from('user_follows').delete()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', targetUserId);
       return true;
     } catch (e) {
       return false;
     }
   }
 
-  Future<bool> unfollowUser(String targetUserId, String currentUserId) async {
+  Future<bool> checkIsFollowing(String targetUserId, String currentUserId) async {
     try {
-      final target = await getProfile(targetUserId);
-      if (target != null && target.followers > 0) {
-        await _supabase.from('profiles').update({
-          'followers': target.followers - 1
-        }).eq('id', targetUserId);
-      }
-      
-      final current = await getProfile(currentUserId);
-      if (current != null && current.following > 0) {
-        await _supabase.from('profiles').update({
-          'following': current.following - 1
-        }).eq('id', currentUserId);
-      }
-      return true;
+      final data = await _supabase.from('user_follows')
+          .select()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', targetUserId)
+          .maybeSingle();
+      return data != null;
     } catch (e) {
       return false;
     }

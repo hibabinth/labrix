@@ -87,6 +87,17 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     );
   }
 
+  Future<void> _checkIsFollowing() async {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+    
+    final repo = ProfileRepository();
+    final isFollowing = await repo.checkIsFollowing(widget.worker.id, currentUserId);
+    if (mounted) {
+      setState(() => _isFollowing = isFollowing);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +106,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         context,
         listen: false,
       ).loadWorkerReviews(widget.worker.id);
+      
+      _checkIsFollowing();
     });
   }
 
