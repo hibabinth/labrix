@@ -27,7 +27,15 @@ class WorkerModel extends ProfileModel {
   }) : super(id: id, role: role, name: name, phone: phone, location: location);
 
   factory WorkerModel.fromJson(Map<String, dynamic> json) {
-    final profile = ProfileModel.fromJson(json);
+    // Handle nested 'profiles' object from Supabase joins
+    final Map<String, dynamic> profileJson = json['profiles'] as Map<String, dynamic>? ?? json;
+    
+    // Ensure ID is available for ProfileModel parsing
+    final safeProfileJson = Map<String, dynamic>.from(profileJson);
+    safeProfileJson['id'] ??= json['id'];
+
+    final profile = ProfileModel.fromJson(safeProfileJson);
+    
     return WorkerModel(
       id: profile.id,
       role: profile.role,

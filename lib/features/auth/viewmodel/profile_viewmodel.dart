@@ -18,6 +18,11 @@ class ProfileViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearProfile() {
+    _currentProfile = null;
+    notifyListeners();
+  }
+
   Future<void> loadProfile(String userId) async {
     _setLoading(true);
     _currentProfile = await _repo.getProfile(userId);

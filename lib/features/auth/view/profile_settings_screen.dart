@@ -33,6 +33,7 @@ class ProfileSettingsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout, color: AppColors.errorColor),
             onPressed: () async {
+              profileVM.clearProfile();
               await authVM.signOut();
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
@@ -96,6 +97,7 @@ class ProfileSettingsScreen extends StatelessWidget {
             CustomButton(
               text: 'Log Out',
               onPressed: () async {
+                profileVM.clearProfile();
                 await authVM.signOut();
                 if (context.mounted) {
                   Navigator.pushAndRemoveUntil(
