@@ -56,4 +56,17 @@ class ProfileViewModel extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<String?> uploadAvatar(String userId, dynamic imageFile) async {
+    _setLoading(true);
+    try {
+      final url = await _repo.uploadAvatar(userId, imageFile);
+      _setLoading(false);
+      return url;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return null;
+    }
+  }
 }

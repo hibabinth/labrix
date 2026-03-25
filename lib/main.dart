@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/viewmodel/auth_viewmodel.dart';
 import 'features/auth/viewmodel/profile_viewmodel.dart';
 import 'features/home/viewmodel/home_viewmodel.dart';
@@ -44,11 +45,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Labrix - Service Marketplace',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-          useMaterial3: true,
-          fontFamily: 'Roboto',
-        ),
+        theme: AppTheme.lightTheme,
         home: const SplashScreen(),
       ),
     );

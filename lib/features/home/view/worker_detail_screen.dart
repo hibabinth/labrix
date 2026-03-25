@@ -5,6 +5,8 @@ import '../../../data/models/worker_model.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../booking/view/create_booking_screen.dart';
 import '../../reviews/viewmodel/review_viewmodel.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/repositories/profile_repository.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final WorkerModel worker;
@@ -15,6 +17,76 @@ class WorkerDetailScreen extends StatefulWidget {
 }
 
 class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
+  bool _isFollowing = false;
+  bool _isProcessingFollow = false;
+
+  void _toggleFollow() async {
+    setState(() => _isProcessingFollow = true);
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) {
+      setState(() => _isProcessingFollow = false);
+      return;
+    }
+    
+    final repo = ProfileRepository();
+    bool success;
+    if (_isFollowing) {
+      success = await repo.unfollowUser(widget.worker.id, currentUserId);
+    } else {
+      success = await repo.followUser(widget.worker.id, currentUserId);
+    }
+    
+    if (success && mounted) {
+      setState(() => _isFollowing = !_isFollowing);
+    }
+    if (mounted) setState(() => _isProcessingFollow = false);
+  }
+
+  void _showRatingDialog() {
+    double currentSelectedRating = 5.0;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Rate Worker'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('How would you rate ${widget.worker.name}?'),
+              const SizedBox(height: 16),
+              Slider(
+                value: currentSelectedRating,
+                min: 1.0,
+                max: 5.0,
+                divisions: 4,
+                activeColor: Colors.amber,
+                label: currentSelectedRating.toString(),
+                onChanged: (val) => setStateDialog(() => currentSelectedRating = val),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text('Cancel')
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
+              onPressed: () async {
+                final success = await ProfileRepository().rateWorker(widget.worker.id, currentSelectedRating);
+                if (success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rating saved!')));
+                }
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text('Submit', style: TextStyle(color: Colors.white)),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +112,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.star_rate, color: Colors.amber),
+            onPressed: _showRatingDialog,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -166,16 +244,36 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               ],
             ),
             const SizedBox(height: 40),
-            CustomButton(
-              text: 'Book Service',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateBookingScreen(worker: widget.worker),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Book Service',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateBookingScreen(worker: widget.worker),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: AppColors.primaryColor, width: 2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: _isProcessingFollow ? null : _toggleFollow,
+                    child: _isProcessingFollow
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(_isFollowing ? 'Following' : 'Follow', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryColor)),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             const Text(

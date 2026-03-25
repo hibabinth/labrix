@@ -7,6 +7,7 @@ import '../../../data/models/booking_model.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../viewmodel/booking_viewmodel.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../payments/view/payment_screen.dart';
 
 class CreateBookingScreen extends StatefulWidget {
   final WorkerModel worker;
@@ -77,7 +78,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking Requested Successfully!')),
       );
-      Navigator.pop(context); // Go back to worker profile
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => PaymentScreen(worker: widget.worker)),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(bookingVM.error ?? 'Failed to book')),

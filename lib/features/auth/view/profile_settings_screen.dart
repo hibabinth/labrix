@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../viewmodel/auth_viewmodel.dart';
 import '../viewmodel/profile_viewmodel.dart';
+import '../../posts/view/create_post_screen.dart';
+import '../../../data/repositories/post_repository.dart';
+import '../../../data/models/post_model.dart';
+import 'edit_profile_screen.dart';
 import 'splash_screen.dart';
-import '../../../shared/widgets/custom_button.dart';
 
 class ProfileSettingsScreen extends StatelessWidget {
   const ProfileSettingsScreen({super.key});
@@ -14,19 +17,16 @@ class ProfileSettingsScreen extends StatelessWidget {
     final authVM = Provider.of<AuthViewModel>(context);
     final profileVM = Provider.of<ProfileViewModel>(context);
     final profile = profileVM.currentProfile;
-    final user = authVM.currentUser;
 
-    if (profile == null || user == null) {
+    if (profile == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'Profile Settings',
-          style: TextStyle(color: AppColors.textPrimaryColor),
-        ),
+        title: const Text('Profile', style: TextStyle(color: AppColors.textPrimaryColor)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -44,95 +44,224 @@ class ProfileSettingsScreen extends StatelessWidget {
               }
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
-              child: const Icon(
-                Icons.person,
-                size: 50,
-                color: AppColors.primaryColor,
+            // Center Profile Image with Edit Overlay
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
+                    backgroundImage: profile.imageUrl != null 
+                        ? NetworkImage(profile.imageUrl!) 
+                        : null,
+                    child: profile.imageUrl == null
+                        ? const Icon(Icons.person, size: 50, color: AppColors.primaryColor)
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProfileScreen(profile: profile),
+                          ),
+                        ).then((_) {
+                          // Optionally reload profile
+                          if (authVM.currentUser?.id != null) {
+                            profileVM.loadProfile(authVM.currentUser!.id);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
+
+            // Profile Name
             Text(
               profile.name,
               style: const TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimaryColor,
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: profile.role == 'worker'
-                    ? Colors.orange.withValues(alpha: 0.2)
-                    : Colors.blue.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                profile.role.toUpperCase(),
+            if (profile.role == 'worker') ...[
+              const SizedBox(height: 4),
+              Text(
+                'Worker Profile',
                 style: TextStyle(
-                  color: profile.role == 'worker'
-                      ? Colors.orange.shade800
-                      : Colors.blue.shade800,
-                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryColor,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+            ],
+            const SizedBox(height: 32),
+
+            // Stats Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatColumn(profile.followers.toString(), 'Followers'),
+                Container(width: 1, height: 40, color: Colors.grey.shade300),
+                _buildStatColumn(profile.following.toString(), 'Following'),
+                Container(width: 1, height: 40, color: Colors.grey.shade300),
+                _buildStatColumn('10', 'Events'),
+              ],
+            ),
+            const SizedBox(height: 40),
+
+            // About Me
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'About Me',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimaryColor),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  profile.aboutMe ?? 'I am passionate about what I do and always strive to deliver the best quality of work. I love learning new things and improving my skills over time.',
+                  style: const TextStyle(height: 1.5, color: AppColors.textSecondaryColor),
+                ),
+                GestureDetector(
+                  onTap: () {},
+                  child: const Text(' Read More', style: TextStyle(color: AppColors.primaryColor, fontWeight: FontWeight.w600)),
+                ),
+              ],
             ),
             const SizedBox(height: 32),
-            _buildInfoTile(Icons.email, 'Email', user.email ?? 'No email'),
-            const Divider(),
-            _buildInfoTile(Icons.phone, 'Phone', profile.phone),
-            const Divider(),
-            _buildInfoTile(Icons.location_on, 'Location', profile.location),
-            const SizedBox(height: 48),
-            CustomButton(
-              text: 'Log Out',
-              onPressed: () async {
-                profileVM.clearProfile();
-                await authVM.signOut();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SplashScreen()),
-                    (route) => false,
-                  );
-                }
-              },
+
+            // Posts Gallery Section
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Posts',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimaryColor),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_box, color: AppColors.primaryColor),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+                        ).then((value) {
+                          if (value == true) {
+                            // Force rebuild to fetch new posts
+                            (context as Element).markNeedsBuild();
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<List<PostModel>>(
+                  future: PostRepository().getUserPosts(profile.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Text('No posts yet.', style: TextStyle(color: AppColors.textSecondaryColor)),
+                        ),
+                      );
+                    }
+                    
+                    final posts = snapshot.data!;
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: posts.length,
+                      itemBuilder: (context, index) {
+                        final post = posts[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            image: post.imageUrl != null
+                                ? DecorationImage(image: NetworkImage(post.imageUrl!), fit: BoxFit.cover)
+                                : null,
+                          ),
+                          child: post.imageUrl == null
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      post.text,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 10),
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String title, String value) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primaryColor),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: AppColors.textSecondaryColor,
-          fontSize: 14,
+  Widget _buildStatColumn(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimaryColor,
+          ),
         ),
-      ),
-      subtitle: Text(
-        value,
-        style: const TextStyle(
-          color: AppColors.textPrimaryColor,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondaryColor,
+          ),
         ),
-      ),
+      ],
     );
   }
 }
