@@ -3,11 +3,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/message_model.dart';
 import '../../../data/models/booking_model.dart';
+import '../../../data/models/profile_model.dart';
 import '../../../data/repositories/chat_repository.dart';
+import '../../../data/repositories/profile_repository.dart';
 
 class ChatViewModel extends ChangeNotifier {
   final ChatRepository _chatRepository = ChatRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  final Map<String, ProfileModel> _participantProfiles = {};
+  Map<String, ProfileModel> get participantProfiles => _participantProfiles;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -62,6 +68,47 @@ class ChatViewModel extends ChangeNotifier {
       await _chatRepository.sendMessage(message);
     } catch (e) {
       debugPrint('Failed to send message: $e');
+    }
+  }
+
+  Future<void> fetchParticipantProfiles(String userId, String workerId) async {
+    // Only fetch if not already in cache to save requests
+    if (!_participantProfiles.containsKey(userId)) {
+      final userProfile = await _profileRepository.getProfile(userId);
+      if (userProfile != null) {
+        _participantProfiles[userId] = userProfile;
+      }
+    }
+
+    if (!_participantProfiles.containsKey(workerId)) {
+      final workerProfile = await _profileRepository.getProfile(workerId);
+      if (workerProfile != null) {
+        _participantProfiles[workerId] = workerProfile;
+      }
+    }
+    notifyListeners();
+  }
+
+  ProfileModel? getOtherParticipantProfile(String bookingId, String currentUserId, {BookingModel? booking}) {
+    final targetBooking = booking ?? _activeChats.firstWhere(
+      (b) => b.id == bookingId,
+      orElse: () => throw Exception('Booking not found in active chats'),
+    );
+    
+    final otherId = targetBooking.userId == currentUserId ? targetBooking.workerId : targetBooking.userId;
+    return _participantProfiles[otherId];
+  }
+
+  Future<void> deleteChat(String bookingId) async {
+    try {
+      await _chatRepository.deleteChat(bookingId);
+      // We don't necessarily want to remove the booking from list, just clear messages
+      // But user said "chat deletion", usually implies removing from list.
+      // If we want to hide it, we'd need an 'is_hidden' flag in DB.
+      // For now, let's just delete the messages.
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to delete chat: $e');
     }
   }
 }

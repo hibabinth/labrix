@@ -25,6 +25,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     super.initState();
     final chatVM = Provider.of<ChatViewModel>(context, listen: false);
     _messageStream = chatVM.listenToRoom(widget.booking.id);
+    
+    // Fetch profiles for both participants
+    chatVM.fetchParticipantProfiles(widget.booking.userId, widget.booking.workerId);
   }
 
   void _sendMessage(ChatViewModel chatVM) {
@@ -35,137 +38,204 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chatVM = Provider.of<ChatViewModel>(context, listen: false);
+    return Consumer<ChatViewModel>(
+      builder: (context, chatVM, child) {
+        final otherProfile = chatVM.getOtherParticipantProfile(
+          widget.booking.id, 
+          _currentUserId, 
+          booking: widget.booking,
+        );
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Booking #${widget.booking.id.substring(0, 6)}',
-          style: const TextStyle(color: AppColors.textPrimaryColor),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: AppColors.textPrimaryColor),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<MessageModel>>(
-              stream: _messageStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final messages = snapshot.data ?? [];
-                debugPrint('ChatRoom: Received ${messages.length} messages for ${widget.booking.id}');
-                
-                // Keep scroll at bottom on new message
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (_scrollController.hasClients) {
-                    _scrollController.animateTo(0,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut);
-                  }
-                });
-
-                if (messages.isEmpty) {
-                  return const Center(child: Text('No messages yet. Say hi!'));
-                }
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final isMe = messages[index].senderId == _currentUserId;
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+        return Scaffold(
+          backgroundColor: AppColors.backgroundColor,
+          appBar: AppBar(
+            title: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.primaryColor.withOpacity(0.1),
+                  backgroundImage: (otherProfile?.imageUrl != null && otherProfile!.imageUrl!.isNotEmpty)
+                      ? NetworkImage(otherProfile.imageUrl!)
+                      : null,
+                  child: (otherProfile?.imageUrl == null || otherProfile!.imageUrl!.isEmpty)
+                      ? Text(
+                          otherProfile?.name.substring(0, 1).toUpperCase() ?? '?',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryColor),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        otherProfile?.name ?? 'Loading...',
+                        style: const TextStyle(
+                          color: AppColors.textPrimaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                        decoration: BoxDecoration(
-                          color: isMe ? AppColors.primaryColor : Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft: isMe
-                                ? const Radius.circular(16)
-                                : Radius.zero,
-                            bottomRight: isMe
-                                ? Radius.zero
-                                : const Radius.circular(16),
-                          ),
-                          border: isMe
-                              ? null
-                              : Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Text(
-                          messages[index].content,
-                          style: TextStyle(
-                            color: isMe
-                                ? Colors.white
-                                : AppColors.textPrimaryColor,
-                          ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Booking #${widget.booking.id.substring(0, 6)}',
+                        style: TextStyle(
+                          color: AppColors.textSecondaryColor,
+                          fontSize: 12,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.white,
+            elevation: 1,
+            iconTheme: const IconThemeData(color: AppColors.textPrimaryColor),
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<List<MessageModel>>(
+                  stream: _messageStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    final messages = snapshot.data ?? [];
+                    
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(0,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOut);
+                      }
+                    });
+
+                    if (messages.isEmpty) {
+                      return const Center(child: Text('No messages yet. Say hi!'));
+                    }
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isMe = message.senderId == _currentUserId;
+                        final senderProfile = chatVM.participantProfiles[message.senderId];
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (!isMe) ...[
+                                CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: AppColors.primaryColor.withOpacity(0.1),
+                                  backgroundImage: (senderProfile?.imageUrl != null && senderProfile!.imageUrl!.isNotEmpty)
+                                      ? NetworkImage(senderProfile.imageUrl!)
+                                      : null,
+                                  child: (senderProfile?.imageUrl == null || senderProfile!.imageUrl!.isEmpty)
+                                      ? Text(
+                                          senderProfile?.name.substring(0, 1).toUpperCase() ?? '?',
+                                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryColor),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isMe ? AppColors.primaryColor : Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: isMe
+                                          ? const Radius.circular(16)
+                                          : Radius.zero,
+                                      bottomRight: isMe
+                                          ? Radius.zero
+                                          : const Radius.circular(16),
+                                    ),
+                                    border: isMe
+                                        ? null
+                                        : Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Text(
+                                    message.content,
+                                    style: TextStyle(
+                                      color: isMe
+                                          ? Colors.white
+                                          : AppColors.textPrimaryColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.white,
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _msgController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: AppColors.primaryColor,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      onPressed: () => _sendMessage(chatVM),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Colors.white,
+                child: SafeArea(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _msgController,
+                          decoration: InputDecoration(
+                            hintText: 'Type a message...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      CircleAvatar(
+                        backgroundColor: AppColors.primaryColor,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: () => _sendMessage(chatVM),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

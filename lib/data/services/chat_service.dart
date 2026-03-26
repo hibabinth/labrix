@@ -59,4 +59,8 @@ class ChatService {
 
     return controller.stream;
   }
+
+  Future<void> deleteMessages(String bookingId) async {
+    await _supabase.from('messages').delete().eq('booking_id', bookingId);
+  }
 }

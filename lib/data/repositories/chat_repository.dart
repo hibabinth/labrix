@@ -11,4 +11,8 @@ class ChatRepository {
   Stream<List<MessageModel>> listenToMessages(String bookingId) {
     return _chatService.listenToMessages(bookingId);
   }
+
+  Future<void> deleteChat(String bookingId) async {
+    await _chatService.deleteMessages(bookingId);
+  }
 }

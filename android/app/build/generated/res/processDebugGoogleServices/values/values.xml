@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gcm_defaultSenderId" translatable="false">778105708340</string>
+    <string name="google_api_key" translatable="false">AIzaSyCGAQkeCYAHbdY9bzhAl7JhQj2bXG9gk3M</string>
+    <string name="google_app_id" translatable="false">1:778105708340:android:565da42fce10205ab7cf61</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCGAQkeCYAHbdY9bzhAl7JhQj2bXG9gk3M</string>
+    <string name="google_storage_bucket" translatable="false">labrix-1db3a.firebasestorage.app</string>
+    <string name="project_id" translatable="false">labrix-1db3a</string>
+</resources>

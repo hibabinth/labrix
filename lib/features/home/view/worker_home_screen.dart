@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
+import '../../../data/models/profile_model.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../../data/models/booking_model.dart';
+import '../../chat/view/chat_room_screen.dart';
+import '../../chat/viewmodel/chat_viewmodel.dart';
 import 'package:intl/intl.dart';
 
 class WorkerHomeScreen extends StatefulWidget {
@@ -15,6 +18,29 @@ class WorkerHomeScreen extends StatefulWidget {
 
 class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   final BookingRepository _bookingRepo = BookingRepository();
+  List<BookingModel>? _bookings;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
+    final profile = profileVM.currentProfile;
+    if (profile != null) {
+      if (mounted) setState(() => _isLoading = true);
+      final data = await _bookingRepo.getWorkerBookings(profile.id);
+      if (mounted) {
+        setState(() {
+          _bookings = data;
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,149 +48,161 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     final profile = profileVM.currentProfile;
     final workerName = profile?.name.split(' ').first ?? 'Worker';
 
+    final bookings = _bookings ?? [];
+    final totalBookings = bookings.where((b) => b.status.toLowerCase() != 'cancelled').length;
+    final completedBookings = bookings.where((b) => b.status.toLowerCase() == 'completed').length;
+    final totalEarnings = completedBookings * 500;
+    final formatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          // ── App Bar / Header ─────────────────────────────────────
-          SliverAppBar(
-            expandedHeight: 180,
-            floating: false,
-            pinned: true,
-            backgroundColor: AppColors.primaryColor,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.primaryColor, Color(0xFF1A237E)],
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Welcome back,',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        '$workerName! 👋',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                onPressed: () {},
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-
-          // ── Stats Summary ───────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Overview'),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: 'Total Bookings',
-                          value: '24',
-                          icon: Icons.calendar_today,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: 'Total Earnings',
-                          value: '₹12,400',
-                          icon: Icons.account_balance_wallet,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  _buildSectionTitle('Bookings Feed'),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Bookings List ────────────────────────────────────────
-          FutureBuilder<List<BookingModel>>(
-            future: profile != null ? _bookingRepo.getWorkerBookings(profile.id) : Future.value([]),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SliverToBoxAdapter(
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              
-              final bookings = snapshot.data ?? [];
-              
-              if (bookings.isEmpty) {
-                return SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(40.0),
-                      child: Column(
-                        children: [
-                          Icon(Icons.event_busy, size: 64, color: Colors.grey.shade300),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No bookings found',
-                            style: TextStyle(color: AppColors.textSecondaryColor),
-                          ),
-                        ],
-                      ),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        color: AppColors.primaryColor,
+        child: CustomScrollView(
+          slivers: [
+            // ── App Bar / Header ─────────────────────────────────────
+            SliverAppBar(
+              expandedHeight: 180,
+              floating: false,
+              pinned: true,
+              backgroundColor: AppColors.primaryColor,
+              elevation: 0,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.primaryColor, Color(0xFF1A237E)],
                     ),
                   ),
-                );
-              }
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Welcome back,',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          '$workerName! 👋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                  onPressed: () {},
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
 
-              return SliverList(
+            // ── Stats Summary ───────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('Overview'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            title: 'Total Bookings',
+                            value: _isLoading ? '...' : totalBookings.toString(),
+                            icon: Icons.calendar_today,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStatCard(
+                            title: 'Total Earnings',
+                            value: _isLoading ? '...' : formatter.format(totalEarnings),
+                            icon: Icons.account_balance_wallet,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionTitle('Bookings Feed'),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Bookings List ────────────────────────────────────────
+            if (_isLoading)
+              const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: CircularProgressIndicator(color: AppColors.primaryColor),
+                  ),
+                ),
+              )
+            else if (bookings.isEmpty)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Column(
+                      children: [
+                        Icon(Icons.event_busy, size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No bookings found',
+                          style: TextStyle(color: AppColors.textSecondaryColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final booking = bookings[index];
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: _buildBookingCard(booking),
+                      child: Consumer<ChatViewModel>(
+                        builder: (context, chatVM, child) {
+                          if (!chatVM.participantProfiles.containsKey(booking.userId)) {
+                            chatVM.fetchParticipantProfiles(booking.userId, booking.workerId);
+                          }
+                          final customerProfile = chatVM.participantProfiles[booking.userId];
+                          return _buildBookingCard(booking, customerProfile);
+                        },
+                      ),
                     );
                   },
                   childCount: bookings.length,
                 ),
-              );
-            },
-          ),
-          
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
-        ],
+              ),
+            
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
+        ),
       ),
     );
   }
@@ -193,7 +231,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -205,7 +243,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -232,87 +270,109 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     );
   }
 
-  Widget _buildBookingCard(BookingModel booking) {
+  Widget _buildBookingCard(BookingModel booking, ProfileModel? customerProfile) {
     final dateStr = booking.date != null ? DateFormat('MMM dd, yyyy').format(booking.date!) : 'No date';
     
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(booking: booking),
           ),
-        ],
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: const Icon(Icons.person_outline, color: AppColors.primaryColor),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Customer Request',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+          ],
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundColor: AppColors.primaryColor.withOpacity(0.1),
+              backgroundImage: (customerProfile?.imageUrl != null && customerProfile!.imageUrl!.isNotEmpty)
+                  ? NetworkImage(customerProfile.imageUrl!)
+                  : null,
+              child: (customerProfile?.imageUrl == null || customerProfile!.imageUrl!.isEmpty)
+                  ? Text(
+                      customerProfile?.name.substring(0, 1).toUpperCase() ?? '?',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryColor),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    customerProfile?.name ?? 'Customer Request',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$dateStr at ${booking.time ?? "Anytime"}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondaryColor,
+                  const SizedBox(height: 4),
+                  Text(
+                    '$dateStr at ${booking.time ?? "Anytime"}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondaryColor,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getStatusColor(booking.status).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              booking.status.toUpperCase(),
-              style: TextStyle(
-                color: _getStatusColor(booking.status),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+                  Text(
+                    'Booking #${booking.id.substring(0, 6).toUpperCase()}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor(booking.status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                booking.status.toUpperCase(),
+                style: TextStyle(
+                  color: _getStatusColor(booking.status),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
       case 'accepted':
         return Colors.blue;
       case 'completed':
         return Colors.green;
       case 'cancelled':
         return Colors.red;
+      case 'in_progress':
+        return Colors.orange;
       default:
         return Colors.grey;
     }
