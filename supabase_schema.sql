@@ -108,3 +108,20 @@ CREATE POLICY "Participants can insert chat messages" ON public.messages FOR INS
 
 CREATE POLICY "Reviews viewable by everyone" ON public.reviews FOR SELECT USING (true);
 CREATE POLICY "Users can insert reviews for their bookings" ON public.reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
+
+-- Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+
+-- User Tokens table (for FCM)
+CREATE TABLE public.user_tokens (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  fcm_token TEXT NOT NULL,
+  device_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, fcm_token)
+);
+
+ALTER TABLE public.user_tokens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own tokens" ON public.user_tokens FOR ALL USING (auth.uid() = user_id);

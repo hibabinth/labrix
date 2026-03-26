@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../../data/models/message_model.dart';
 import '../../../data/models/booking_model.dart';
 import '../../../data/repositories/chat_repository.dart';
@@ -25,12 +26,11 @@ class ChatViewModel extends ChangeNotifier {
     try {
       final column = role == 'worker' ? 'worker_id' : 'user_id';
 
-      // We assume users can chat if a booking exists and is not 'pending'
+      // We allow users to chat if a booking exists (even if pending)
       final res = await _supabase
           .from('bookings')
           .select()
-          .eq(column, userId)
-          .neq('status', 'pending');
+          .eq(column, userId);
 
       _activeChats = (res as List)
           .map((e) => BookingModel.fromJson(e))
@@ -52,11 +52,10 @@ class ChatViewModel extends ChangeNotifier {
     if (senderId == null) return;
 
     final message = MessageModel(
-      id: '', // Supabase sequence will generate this if handled properly, or we can use UUID.
+      id: const Uuid().v4(),
       bookingId: bookingId,
       senderId: senderId,
       content: content,
-      createdAt: DateTime.now(),
     );
 
     try {

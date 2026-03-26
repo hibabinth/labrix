@@ -1,16 +1,16 @@
 class MessageModel {
-  final String id;
+  final String? id;
   final String bookingId;
   final String senderId;
   final String content;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   MessageModel({
-    required this.id,
+    this.id,
     required this.bookingId,
     required this.senderId,
     required this.content,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
@@ -19,17 +19,18 @@ class MessageModel {
       bookingId: json['booking_id'],
       senderId: json['sender_id'],
       content: json['content'],
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final Map<String, dynamic> data = {
       'booking_id': bookingId,
       'sender_id': senderId,
       'content': content,
-      'created_at': createdAt.toIso8601String(),
     };
+    if (id != null && id!.isNotEmpty) data['id'] = id;
+    if (createdAt != null) data['created_at'] = createdAt!.toIso8601String();
+    return data;
   }
 }

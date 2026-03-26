@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
 import '../widgets/worker_card.dart';
 import 'category_detail_screen.dart';
 import 'category_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -18,6 +18,7 @@ class UserHomeScreen extends StatefulWidget {
 class _UserHomeScreenState extends State<UserHomeScreen> {
   String _searchQuery = '';
   String? _selectedCategory;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -26,9 +27,16 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       Provider.of<HomeViewModel>(context, listen: false).initHome();
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId != null) {
-        Provider.of<ProfileViewModel>(context, listen: false).loadProfile(userId);
+        Provider.of<ProfileViewModel>(context, listen: false)
+            .loadProfile(userId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -53,99 +61,37 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 }
               },
               color: AppColors.primaryColor,
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
-                                child: const Icon(Icons.person, color: AppColors.primaryColor),
-                              ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Welcome',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondaryColor,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    userName,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimaryColor,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.notifications_outlined),
-                              color: AppColors.textPrimaryColor,
-                              onPressed: () {},
-                            ),
-                          ),
-                        ],
+              child: CustomScrollView(
+                slivers: [
+                  // ── Premium Collapsible Header ───────────────────
+                  SliverAppBar(
+                    expandedHeight: 250,
+                    pinned: true,
+                    backgroundColor: AppColors.primaryColor,
+                    elevation: 0,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: _buildHeaderBackground(userName, profile),
+                    ),
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(80),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        child: _buildSearchBar(homeVM),
                       ),
-                      const SizedBox(height: 32),
-                      
-                      // Hero Text
-                      const Text(
-                        'All your services\nin one place',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimaryColor,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Search Bar
-                      _buildSearchBar(homeVM),
-                      const SizedBox(height: 32),
-                      
-                      // Category Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                  ),
+
+                  // ── Main Content ──────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Category',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimaryColor,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
+                          // Categories
+                          _buildSectionHeader(
+                            'Categories',
+                            onSeeAll: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -153,98 +99,195 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                                 ),
                               );
                             },
-                            child: const Text('See all'),
                           ),
+                          const SizedBox(height: 16),
+                          _buildCategoryList(homeVM),
+
+                          const SizedBox(height: 32),
+
+                          // Popular Workers
+                          _buildSectionHeader(
+                            'Specialty Services',
+                            onSeeAll: () {},
+                          ),
+                          const SizedBox(height: 16),
+                          _buildWorkerList(homeVM),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      // Categories List
-                      _buildCategoryList(homeVM),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Specialty Services Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Specialty services',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimaryColor,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            child: const Text('See all'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Workers List
-                      _buildWorkerList(homeVM),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
     );
   }
 
-  Widget _buildSearchBar(HomeViewModel homeVM) {
-    return TextField(
-      onChanged: (val) {
-        setState(() => _searchQuery = val);
-        homeVM.filterWorkers(_searchQuery, _selectedCategory);
-      },
-      decoration: InputDecoration(
-        hintText: 'Your search',
-        hintStyle: const TextStyle(color: AppColors.textSecondaryColor),
-        prefixIcon: const Icon(
-          Icons.search,
-          color: AppColors.textSecondaryColor,
-        ),
-        suffixIcon: Container(
-          margin: const EdgeInsets.all(8),
+  Widget _buildHeaderBackground(String userName, profile) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Gradient background
+        Container(
           decoration: BoxDecoration(
-            color: AppColors.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryColor,
+                AppColors.primaryColor.withValues(alpha: 0.8),
+              ],
+            ),
           ),
-          child: const Icon(
-            Icons.tune,
-            color: AppColors.primaryColor,
-            size: 20,
+        ),
+        // Abstract shapes
+        Positioned(
+          top: -30,
+          right: -30,
+          child: Container(
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
           ),
         ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
+        // Greeting Text
+        Positioned(
+          left: 20,
+          right: 20,
+          top: 60,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    backgroundImage: profile?.imageUrl != null
+                        ? NetworkImage(profile!.imageUrl!)
+                        : null,
+                    child: profile?.imageUrl == null
+                        ? const Icon(Icons.person, color: Colors.white, size: 20)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Hello, $userName! 👋',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Find your best\nservice professional',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
+      ],
+    );
+  }
+
+  Widget _buildSearchBar(HomeViewModel homeVM) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() => _searchQuery = val);
+          homeVM.filterWorkers(_searchQuery, _selectedCategory);
+        },
+        decoration: InputDecoration(
+          hintText: 'Search for electrican, plumber...',
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          prefixIcon: const Icon(Icons.search, color: AppColors.primaryColor),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                    homeVM.filterWorkers('', _selectedCategory);
+                  },
+                )
+              : Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.tune,
+                      color: AppColors.primaryColor, size: 18),
+                ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
-        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, {VoidCallback? onSeeAll}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimaryColor,
+            ),
+          ),
+          if (onSeeAll != null)
+            TextButton(
+              onPressed: onSeeAll,
+              child: const Text('See all'),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildCategoryList(HomeViewModel homeVM) {
     final cats = homeVM.categories;
-    if (cats.isEmpty) return const Text('No categories available.');
+    if (cats.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: Text('No categories available.'),
+      );
+    }
     return SizedBox(
       height: 110,
       child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         itemCount: cats.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (context, index) {
           final cat = cats[index];
           final isSelected = _selectedCategory == cat.name;
@@ -264,46 +307,39 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               }
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 88,
+              duration: const Duration(milliseconds: 250),
+              width: 90,
               decoration: BoxDecoration(
-                gradient: isSelected
-                    ? LinearGradient(
-                        colors: [
-                          AppColors.primaryColor,
-                          AppColors.primaryColor.withValues(alpha: 0.75),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isSelected ? null : Colors.white,
+                color: isSelected ? AppColors.primaryColor : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(cat.emoji, style: const TextStyle(fontSize: 32)),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : AppColors.backgroundColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(cat.emoji, style: const TextStyle(fontSize: 24)),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     cat.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? Colors.white
-                          : AppColors.textPrimaryColor,
+                      color: isSelected ? Colors.white : AppColors.textPrimaryColor,
                     ),
                   ),
                 ],
@@ -328,6 +364,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       );
     }
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: homeVM.filteredWorkers.length,
@@ -338,3 +375,4 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 }
+

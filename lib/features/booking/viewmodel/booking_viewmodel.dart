@@ -63,13 +63,16 @@ class BookingViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateStatus(String bookingId, String status) async {
+  Future<bool> updateStatus(String bookingId, String status, {String? userId, String? workerId}) async {
     _isLoading = true;
     notifyListeners();
     try {
       await _bookingRepository.updateBookingStatus(bookingId, status);
-      // Reload lists locally by finding and updating in-memory models if needed
-      // Or just reload entirely
+      
+      // Auto-refresh relevant lists
+      if (userId != null) await loadUserBookings(userId);
+      if (workerId != null) await loadWorkerBookings(workerId);
+      
       _isLoading = false;
       notifyListeners();
       return true;

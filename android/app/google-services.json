@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "778105708340",
+    "project_id": "labrix-1db3a",
+    "storage_bucket": "labrix-1db3a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778105708340:android:565da42fce10205ab7cf61",
+        "android_client_info": {
+          "package_name": "com.example.labrix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGAQkeCYAHbdY9bzhAl7JhQj2bXG9gk3M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

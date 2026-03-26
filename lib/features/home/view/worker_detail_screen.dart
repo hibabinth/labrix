@@ -147,7 +147,49 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                background: _buildHeroHeader(worker),
+                titlePadding: EdgeInsets.zero,
+                centerTitle: true,
+                title: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double top = constraints.biggest.height;
+                    // expandedHeight (280)
+                    final double collapseProgress = ((280 - top) / (280 - kToolbarHeight)).clamp(0.0, 1.0);
+                    
+                    return Stack(
+                      children: [
+                        Opacity(
+                          opacity: (1.0 - (collapseProgress * 2)).clamp(0.0, 1.0),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 20, bottom: 20, right: 20),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _buildAvatar(worker),
+                                const SizedBox(width: 14),
+                                _buildNameAndCategory(worker),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (collapseProgress > 0.8)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(
+                                worker.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                background: _buildHeroBackground(worker),
               ),
             ),
 
@@ -354,7 +396,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
     );
   }
 
-  Widget _buildHeroHeader(WorkerModel worker) {
+  Widget _buildHeroBackground(WorkerModel worker) {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -394,64 +436,55 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
             ),
           ),
         ),
-        // Avatar + Name
-        Positioned(
-          left: 20,
-          right: 20,
-          bottom: 20,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Hero(
-                tag: 'worker_avatar_${worker.id}',
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
-                  ),
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundColor:
-                        AppColors.primaryColor.withValues(alpha: 0.3),
-                    backgroundImage: worker.imageUrl != null
-                        ? NetworkImage(worker.imageUrl!)
-                        : null,
-                    child: worker.imageUrl == null
-                        ? const Icon(Icons.person,
-                            size: 38, color: Colors.white)
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      worker.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      worker.category,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildAvatar(WorkerModel worker) {
+    return Hero(
+      tag: 'worker_avatar_${worker.id}',
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+        ),
+        child: CircleAvatar(
+          radius: 40,
+          backgroundColor: AppColors.primaryColor.withValues(alpha: 0.3),
+          backgroundImage:
+              worker.imageUrl != null ? NetworkImage(worker.imageUrl!) : null,
+          child: worker.imageUrl == null
+              ? const Icon(Icons.person, size: 38, color: Colors.white)
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNameAndCategory(WorkerModel worker) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            worker.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            worker.category,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

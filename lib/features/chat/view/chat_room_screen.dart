@@ -16,7 +16,16 @@ class ChatRoomScreen extends StatefulWidget {
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _msgController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final String _currentUserId = Supabase.instance.client.auth.currentUser!.id;
+  late Stream<List<MessageModel>> _messageStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final chatVM = Provider.of<ChatViewModel>(context, listen: false);
+    _messageStream = chatVM.listenToRoom(widget.booking.id);
+  }
 
   void _sendMessage(ChatViewModel chatVM) {
     if (_msgController.text.trim().isEmpty) return;
@@ -43,7 +52,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: chatVM.listenToRoom(widget.booking.id),
+              stream: _messageStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -52,13 +61,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 final messages = snapshot.data ?? [];
+                debugPrint('ChatRoom: Received ${messages.length} messages for ${widget.booking.id}');
+                
+                // Keep scroll at bottom on new message
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.animateTo(0,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut);
+                  }
+                });
+
                 if (messages.isEmpty) {
                   return const Center(child: Text('No messages yet. Say hi!'));
                 }
 
                 return ListView.builder(
-                  reverse:
-                      false, // In practice, reverse is better for chat, but let's keep it simple
+                  controller: _scrollController,
+                  reverse: true,
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
@@ -147,5 +167,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _msgController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 }

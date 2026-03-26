@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../viewmodel/auth_viewmodel.dart';
 import '../viewmodel/profile_viewmodel.dart';
 import '../../posts/view/create_post_screen.dart';
+import '../../posts/view/post_detail_screen.dart';
 import '../../../data/repositories/post_repository.dart';
 import '../../../data/models/post_model.dart';
 import 'edit_profile_screen.dart';
@@ -22,6 +23,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _aboutExpanded = false;
 
   @override
   void initState() {
@@ -111,6 +113,52 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
                 const SizedBox(width: 4),
               ],
               flexibleSpace: FlexibleSpaceBar(
+                titlePadding: EdgeInsets.zero,
+                centerTitle: true,
+                title: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double top = constraints.biggest.height;
+                    // Calculate collapse progress (0.0 to 1.0)
+                    // expandedHeight (260) -> top (approx 260 when fully expanded)
+                    // kToolbarHeight (approx 56) -> fully collapsed
+                    final double collapseProgress = ((260 - top) / (260 - kToolbarHeight)).clamp(0.0, 1.0);
+                    
+                    return Stack(
+                      children: [
+                        // When expanded, show the large avatar/name at the bottom
+                        Opacity(
+                          opacity: (1.0 - (collapseProgress * 2)).clamp(0.0, 1.0),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 20, bottom: 20, right: 20),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _buildAvatar(profile, 38),
+                                const SizedBox(width: 14),
+                                _buildNameAndHeadline(profile),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // When collapsed, show a smaller title (optional or just empty if we want it clean)
+                        if (collapseProgress > 0.8)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 10), // Adjust for status bar
+                              child: Text(
+                                profile.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
                 background: _buildSliverBackground(profile),
               ),
             ),
@@ -130,17 +178,51 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
 
                       // About Me
                       if (profile.aboutMe != null &&
-                          profile.aboutMe!.isNotEmpty) ...[
+                          profile.aboutMe!.isNotEmpty) ...[                    
                         _buildSectionLabel('About Me'),
                         const SizedBox(height: 10),
                         _buildCard(
-                          child: Text(
-                            profile.aboutMe!,
-                            style: const TextStyle(
-                              height: 1.6,
-                              color: AppColors.textSecondaryColor,
-                              fontSize: 14,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AnimatedCrossFade(
+                                duration: const Duration(milliseconds: 250),
+                                crossFadeState: _aboutExpanded
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
+                                firstChild: Text(
+                                  profile.aboutMe!,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    height: 1.6,
+                                    color: AppColors.textSecondaryColor,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                secondChild: Text(
+                                  profile.aboutMe!,
+                                  style: const TextStyle(
+                                    height: 1.6,
+                                    color: AppColors.textSecondaryColor,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              GestureDetector(
+                                onTap: () => setState(
+                                    () => _aboutExpanded = !_aboutExpanded),
+                                child: Text(
+                                  _aboutExpanded ? 'See less' : 'See more',
+                                  style: const TextStyle(
+                                    color: AppColors.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 28),
@@ -222,74 +304,64 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
             ),
           ),
         ),
-        // Avatar + name at bottom
-        Positioned(
-          left: 20,
-          bottom: 20,
-          right: 20,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Hero(
-                tag: 'profile_avatar_${profile.id}',
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 12,
-                      ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 38,
-                    backgroundColor:
-                        AppColors.primaryColor.withValues(alpha: 0.2),
-                    backgroundImage: profile.imageUrl != null
-                        ? NetworkImage(profile.imageUrl!)
-                        : null,
-                    child: profile.imageUrl == null
-                        ? const Icon(Icons.person,
-                            size: 36, color: Colors.white)
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      profile.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(blurRadius: 8, color: Colors.black54),
-                        ],
-                      ),
-                    ),
-                    if (profile.headline != null &&
-                        profile.headline!.isNotEmpty)
-                      Text(
-                        profile.headline!,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontSize: 13,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildAvatar(profile, double radius) {
+    return Hero(
+      tag: 'profile_avatar_${profile.id}',
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: CircleAvatar(
+          radius: radius,
+          backgroundColor: AppColors.primaryColor.withValues(alpha: 0.2),
+          backgroundImage:
+              profile.imageUrl != null ? NetworkImage(profile.imageUrl!) : null,
+          child: profile.imageUrl == null
+              ? const Icon(Icons.person, size: 36, color: Colors.white)
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNameAndHeadline(profile) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            profile.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(blurRadius: 8, color: Colors.black54),
+              ],
+            ),
+          ),
+          if (profile.headline != null && profile.headline!.isNotEmpty)
+            Text(
+              profile.headline!,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 13,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -460,39 +532,52 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
               itemCount: posts.length,
               itemBuilder: (context, index) {
                 final post = posts[index];
-                return AnimatedOpacity(
-                  opacity: 1.0,
-                  duration: Duration(milliseconds: 300 + index * 60),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 6,
-                        ),
-                      ],
-                      image: post.imageUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(post.imageUrl!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: post.imageUrl == null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Text(
-                                post.text,
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 10),
-                              ),
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PostDetailScreen(post: post),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: 'post_${post.id}',
+                    child: AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: Duration(milliseconds: 300 + index * 60),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 6,
                             ),
-                          )
-                        : null,
+                          ],
+                          image: post.imageUrl != null
+                              ? DecorationImage(
+                                  image: NetworkImage(post.imageUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: post.imageUrl == null
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Text(
+                                    post.text,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
                   ),
                 );
               },

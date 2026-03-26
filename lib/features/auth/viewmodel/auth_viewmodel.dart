@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../notifications/services/notification_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository = AuthRepository();
@@ -28,6 +29,7 @@ class AuthViewModel extends ChangeNotifier {
     _setError(null);
     try {
       await _authRepository.signInWithEmail(email, password);
+      await _registerNotificationToken(); // NEW
       _setLoading(false);
       return true;
     } on AuthException catch (e) {
@@ -46,6 +48,7 @@ class AuthViewModel extends ChangeNotifier {
     _setError(null);
     try {
       await _authRepository.signUpWithEmail(email, password);
+      await _registerNotificationToken(); // NEW
       _setLoading(false);
       return true;
     } on AuthException catch (e) {
@@ -116,5 +119,12 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> signOut() async {
     await _authRepository.signOut();
     notifyListeners();
+  }
+
+  Future<void> _registerNotificationToken() async {
+    final token = await NotificationService().getDeviceToken();
+    if (token != null) {
+      await NotificationService().saveTokenToDatabase(token);
+    }
   }
 }
