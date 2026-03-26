@@ -4,6 +4,8 @@ import '../../../core/theme/app_colors.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
 import '../widgets/worker_card.dart';
+import 'category_detail_screen.dart';
+import 'category_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -143,7 +145,14 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CategoryScreen(),
+                                ),
+                              );
+                            },
                             child: const Text('See all'),
                           ),
                         ],
@@ -228,71 +237,81 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 
   Widget _buildCategoryList(HomeViewModel homeVM) {
-    if (homeVM.categories.isEmpty) return const Text('No categories available.');
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: homeVM.categories.length > 4 ? 4 : homeVM.categories.length,
-      itemBuilder: (context, index) {
-        final cat = homeVM.categories[index];
-        final isSelected = _selectedCategory == cat.name;
-        
-        // Use a default icon based on category if no image
-        IconData catIcon = Icons.home_repair_service;
-        if (cat.name.toLowerCase().contains('plumbing')) catIcon = Icons.plumbing;
-        if (cat.name.toLowerCase().contains('electric')) catIcon = Icons.electrical_services;
-        if (cat.name.toLowerCase().contains('cleaning')) catIcon = Icons.cleaning_services;
-
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedCategory = isSelected ? null : cat.name;
-            });
-            homeVM.filterWorkers(_searchQuery, _selectedCategory);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.primaryColor : Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  catIcon,
-                  size: 40,
-                  color: isSelected ? Colors.white : AppColors.primaryColor,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  cat.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : AppColors.textPrimaryColor,
+    final cats = homeVM.categories;
+    if (cats.isEmpty) return const Text('No categories available.');
+    return SizedBox(
+      height: 110,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: cats.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final cat = cats[index];
+          final isSelected = _selectedCategory == cat.name;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedCategory = isSelected ? null : cat.name;
+              });
+              homeVM.filterWorkers(_searchQuery, _selectedCategory);
+              if (!isSelected) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CategoryDetailScreen(category: cat),
                   ),
-                ),
-              ],
+                );
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 88,
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [
+                          AppColors.primaryColor,
+                          AppColors.primaryColor.withValues(alpha: 0.75),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSelected ? null : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(cat.emoji, style: const TextStyle(fontSize: 32)),
+                  const SizedBox(height: 8),
+                  Text(
+                    cat.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

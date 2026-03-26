@@ -2,6 +2,7 @@ import 'profile_model.dart';
 
 class WorkerModel extends ProfileModel {
   final String category;
+  final String? subcategory;
   final int experienceYears;
   final String priceRange;
   final bool isOnline;
@@ -19,6 +20,7 @@ class WorkerModel extends ProfileModel {
     required super.phone,
     required super.location,
     required this.category,
+    this.subcategory,
     required this.experienceYears,
     required this.priceRange,
     required this.isOnline,
@@ -40,14 +42,15 @@ class WorkerModel extends ProfileModel {
 
   factory WorkerModel.fromJson(Map<String, dynamic> json) {
     // Handle nested 'profiles' object from Supabase joins
-    final Map<String, dynamic> profileJson = json['profiles'] as Map<String, dynamic>? ?? json;
-    
+    final Map<String, dynamic> profileJson =
+        json['profiles'] as Map<String, dynamic>? ?? json;
+
     // Ensure ID is available for ProfileModel parsing
     final safeProfileJson = Map<String, dynamic>.from(profileJson);
     safeProfileJson['id'] ??= json['id'];
 
     final profile = ProfileModel.fromJson(safeProfileJson);
-    
+
     return WorkerModel(
       id: profile.id,
       role: profile.role,
@@ -63,6 +66,7 @@ class WorkerModel extends ProfileModel {
       headline: profile.headline,
       dob: profile.dob,
       category: json['category'] ?? '',
+      subcategory: json['subcategory'] as String?,
       experienceYears: json['experience_years'] ?? 0,
       priceRange: json['price_range'] ?? '',
       isOnline: json['is_online'] ?? true,
@@ -77,19 +81,20 @@ class WorkerModel extends ProfileModel {
 
   @override
   Map<String, dynamic> toJson() {
-    final data = super.toJson();
-    data.addAll({
+    final json = toProfileJson();
+    json.addAll({
       'category': category,
+      if (subcategory != null) 'subcategory': subcategory,
       'experience_years': experienceYears,
       'price_range': priceRange,
       'is_online': isOnline,
       'is_verified': isVerified,
+      'skills': skills,
+      if (education != null) 'education': education,
+      'portfolio_urls': portfolioUrls,
       'rating': rating,
       'rating_count': ratingCount,
-      'skills': skills,
-      'education': education,
-      'portfolio_urls': portfolioUrls,
     });
-    return data;
+    return json;
   }
 }

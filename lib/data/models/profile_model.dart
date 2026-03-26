@@ -53,7 +53,7 @@ class ProfileModel {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toProfileJson() {
     return {
       'id': id,
       'role': role,
@@ -72,4 +72,6 @@ class ProfileModel {
       if (dob != null) 'dob': dob,
     };
   }
+
+  Map<String, dynamic> toJson() => toProfileJson();
 }

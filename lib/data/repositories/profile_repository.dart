@@ -7,21 +7,14 @@ class ProfileRepository {
   final _supabase = Supabase.instance.client;
 
   Future<void> createOrUpdateProfile(ProfileModel profile) async {
-    await _supabase.from('profiles').upsert(profile.toJson());
+    await _supabase.from('profiles').upsert(profile.toProfileJson());
   }
 
   Future<void> createOrUpdateWorker(WorkerModel worker) async {
-    // First ensure profile exists
-    final profileData = {
-      'id': worker.id,
-      'role': worker.role,
-      'name': worker.name,
-      'phone': worker.phone,
-      'location': worker.location,
-    };
-    await _supabase.from('profiles').upsert(profileData);
+    // Upsert the base profile fields first (guarantees profile exists)
+    await _supabase.from('profiles').upsert(worker.toProfileJson());
 
-    // Then upsert worker specifics
+    // Then upsert worker-specific fields
     await _supabase.from('workers').upsert({
       'id': worker.id,
       'category': worker.category,
@@ -29,6 +22,11 @@ class ProfileRepository {
       'price_range': worker.priceRange,
       'is_online': worker.isOnline,
       'is_verified': worker.isVerified,
+      'skills': worker.skills,
+      if (worker.education != null) 'education': worker.education,
+      'portfolio_urls': worker.portfolioUrls,
+      'rating': worker.rating,
+      'rating_count': worker.ratingCount,
     });
   }
 
