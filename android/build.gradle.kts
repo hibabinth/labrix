@@ -1,4 +1,7 @@
-import org.gradle.api.tasks.Delete
+plugins {
+    id("com.android.application") apply false
+    id("com.android.library") apply false
+}
 
 allprojects {
     repositories {
@@ -11,7 +14,6 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Clean task
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

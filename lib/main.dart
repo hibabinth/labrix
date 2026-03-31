@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/viewmodel/auth_viewmodel.dart';
@@ -20,13 +18,7 @@ Future<void> main() async {
   // 1. Load environment variables
   await dotenv.load(fileName: ".env");
 
-  // 2. Initialize Firebase (MUST BE BEFORE Supabase)
-  await Firebase.initializeApp();
-
-  // 3. Set up FCM background handler
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-  // 4. Initialize Supabase
+  // 2. Initialize Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
