@@ -5,8 +5,11 @@ import '../../../core/theme/app_colors.dart';
 import '../viewmodel/home_viewmodel.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
 import '../widgets/worker_card.dart';
+import '../../../shared/widgets/announcement_banner.dart';
 import 'category_detail_screen.dart';
 import 'category_screen.dart';
+import '../../../shared/widgets/notification_bell.dart';
+import 'worker_map_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -23,12 +26,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<HomeViewModel>(context, listen: false).initHome();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId != null) {
-        Provider.of<ProfileViewModel>(context, listen: false)
-            .loadProfile(userId);
+        final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
+        await profileVM.loadProfile(userId);
+        
+        if (mounted) {
+          final profile = profileVM.currentProfile;
+          Provider.of<HomeViewModel>(context, listen: false).initHome(profile?.role);
+        }
+      } else {
+        Provider.of<HomeViewModel>(context, listen: false).initHome('user');
       }
     });
   }
@@ -54,7 +63,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             )
           : RefreshIndicator(
               onRefresh: () async {
-                await homeVM.initHome();
+                final role = profileVM.currentProfile?.role;
+                await homeVM.initHome(role);
                 final userId = Supabase.instance.client.auth.currentUser?.id;
                 if (userId != null) {
                   await profileVM.loadProfile(userId);
@@ -69,6 +79,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                     pinned: true,
                     backgroundColor: AppColors.primaryColor,
                     elevation: 0,
+                    actions: const [
+                      NotificationBell(),
+                      SizedBox(width: 8),
+                    ],
                     flexibleSpace: FlexibleSpaceBar(
                       background: _buildHeaderBackground(userName, profile),
                     ),
@@ -80,6 +94,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       ),
                     ),
                   ),
+
+                  // ── Announcements ────────────────────────────────
+                  if (homeVM.announcements.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: AnnouncementBanner(announcements: homeVM.announcements),
+                    ),
 
                   // ── Main Content ──────────────────────────────────
                   SliverToBoxAdapter(
@@ -119,6 +139,21 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ],
               ),
             ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WorkerMapScreen()),
+          );
+        },
+        backgroundColor: AppColors.secondaryColor,
+        icon: const Icon(Icons.map_outlined, color: Colors.white),
+        label: const Text(
+          'Map View',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
     );
   }
 

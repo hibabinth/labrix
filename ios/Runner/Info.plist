@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Labrix needs access to your location to show you nearby professionals on the map.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Labrix needs access to your location to find the best service providers near you.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Labrix uses your location to discover and show available workers in your immediate area.</string>
 </dict>
 </plist>

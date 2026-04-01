@@ -6,6 +6,9 @@ import '../../../core/theme/app_colors.dart';
 import '../viewmodel/profile_viewmodel.dart';
 import '../../../data/models/profile_model.dart';
 import '../../../data/models/worker_model.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'location_picker_screen.dart';
+import 'availability_settings_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final ProfileModel profile;
@@ -22,10 +25,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _aboutMeController;
   late TextEditingController _headlineController;
   late TextEditingController _interestsController;
-  
+
   File? _selectedImage;
   File? _selectedCover;
   bool _isUploading = false;
+  double? _latitude;
+  double? _longitude;
 
   @override
   void initState() {
@@ -33,9 +38,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: widget.profile.name);
     _dobController = TextEditingController(text: widget.profile.dob ?? '');
     _locationController = TextEditingController(text: widget.profile.location);
-    _aboutMeController = TextEditingController(text: widget.profile.aboutMe ?? '');
-    _headlineController = TextEditingController(text: widget.profile.headline ?? '');
-    _interestsController = TextEditingController(text: widget.profile.interests.join('; '));
+    _aboutMeController = TextEditingController(
+      text: widget.profile.aboutMe ?? '',
+    );
+    _headlineController = TextEditingController(
+      text: widget.profile.headline ?? '',
+    );
+    _interestsController = TextEditingController(
+      text: widget.profile.interests.join('; '),
+    );
+    _latitude = widget.profile.latitude;
+    _longitude = widget.profile.longitude;
   }
 
   @override
@@ -71,20 +84,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveChanges() async {
     setState(() => _isUploading = true);
-    
+
     try {
       final profileVM = Provider.of<ProfileViewModel>(context, listen: false);
 
       String? imageUrl = widget.profile.imageUrl;
       String? coverImageUrl = widget.profile.coverImageUrl;
-      
+
       // Upload image if a new one is selected
       if (_selectedImage != null) {
-        imageUrl = await profileVM.uploadAvatar(widget.profile.id, _selectedImage!);
+        imageUrl = await profileVM.uploadAvatar(
+          widget.profile.id,
+          _selectedImage!,
+        );
       }
 
       if (_selectedCover != null) {
-        coverImageUrl = await profileVM.uploadCoverImage(widget.profile.id, _selectedCover!);
+        coverImageUrl = await profileVM.uploadCoverImage(
+          widget.profile.id,
+          _selectedCover!,
+        );
       }
 
       final interestsList = _interestsController.text
@@ -94,7 +113,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           .toList();
 
       ProfileModel updatedProfile;
-      
+
       if (widget.profile is WorkerModel) {
         final worker = widget.profile as WorkerModel;
         updatedProfile = WorkerModel(
@@ -106,7 +125,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           imageUrl: imageUrl,
           followers: worker.followers,
           following: worker.following,
-          aboutMe: _aboutMeController.text.trim().isNotEmpty ? _aboutMeController.text.trim() : null,
+          aboutMe: _aboutMeController.text.trim().isNotEmpty
+              ? _aboutMeController.text.trim()
+              : null,
           interests: interestsList,
           category: worker.category,
           experienceYears: worker.experienceYears,
@@ -118,9 +139,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           portfolioUrls: worker.portfolioUrls,
           rating: worker.rating,
           ratingCount: worker.ratingCount,
+          workingStart: worker.workingStart,
+          workingEnd: worker.workingEnd,
           coverImageUrl: coverImageUrl,
-          headline: _headlineController.text.trim().isNotEmpty ? _headlineController.text.trim() : null,
-          dob: _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : null,
+          headline: _headlineController.text.trim().isNotEmpty
+              ? _headlineController.text.trim()
+              : null,
+          dob: _dobController.text.trim().isNotEmpty
+              ? _dobController.text.trim()
+              : null,
+          latitude: _latitude,
+          longitude: _longitude,
         );
       } else {
         updatedProfile = ProfileModel(
@@ -132,13 +161,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           imageUrl: imageUrl,
           followers: widget.profile.followers,
           following: widget.profile.following,
-          aboutMe: _aboutMeController.text.trim().isNotEmpty ? _aboutMeController.text.trim() : null,
+          aboutMe: _aboutMeController.text.trim().isNotEmpty
+              ? _aboutMeController.text.trim()
+              : null,
           interests: interestsList,
           companyName: widget.profile.companyName,
           details: widget.profile.details,
           coverImageUrl: coverImageUrl,
-          headline: _headlineController.text.trim().isNotEmpty ? _headlineController.text.trim() : null,
-          dob: _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : null,
+          headline: _headlineController.text.trim().isNotEmpty
+              ? _headlineController.text.trim()
+              : null,
+          dob: _dobController.text.trim().isNotEmpty
+              ? _dobController.text.trim()
+              : null,
+          latitude: _latitude,
+          longitude: _longitude,
         );
       }
 
@@ -151,7 +188,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Navigator.pop(context);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(profileVM.errorMessage ?? 'Failed to update profile')),
+          SnackBar(
+            content: Text(profileVM.errorMessage ?? 'Failed to update profile'),
+          ),
         );
       }
     } finally {
@@ -162,21 +201,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)), // Default 18 years ago
+      initialDate: DateTime.now().subtract(
+        const Duration(days: 365 * 18),
+      ), // Default 18 years ago
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             primaryColor: AppColors.primaryColor,
-            colorScheme: const ColorScheme.light(primary: AppColors.primaryColor),
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryColor,
+            ),
           ),
           child: child!,
         );
       },
     );
     if (picked != null) {
-      final formattedDate = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      final formattedDate =
+          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       setState(() {
         _dobController.text = formattedDate;
       });
@@ -188,7 +232,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
-        title: const Text('Edit Profile', style: TextStyle(color: AppColors.textPrimaryColor)),
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(color: AppColors.textPrimaryColor),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textPrimaryColor),
@@ -217,13 +264,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             color: Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(16),
                             image: _selectedCover != null
-                                ? DecorationImage(image: FileImage(_selectedCover!), fit: BoxFit.cover)
+                                ? DecorationImage(
+                                    image: FileImage(_selectedCover!),
+                                    fit: BoxFit.cover,
+                                  )
                                 : (widget.profile.coverImageUrl != null
-                                    ? DecorationImage(image: NetworkImage(widget.profile.coverImageUrl!), fit: BoxFit.cover)
-                                    : null),
+                                      ? DecorationImage(
+                                          image: NetworkImage(
+                                            widget.profile.coverImageUrl!,
+                                          ),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null),
                           ),
-                          child: (_selectedCover == null && widget.profile.coverImageUrl == null)
-                              ? const Center(child: Icon(Icons.add_a_photo, color: Colors.grey, size: 40))
+                          child:
+                              (_selectedCover == null &&
+                                  widget.profile.coverImageUrl == null)
+                              ? const Center(
+                                  child: Icon(
+                                    Icons.add_a_photo,
+                                    color: Colors.grey,
+                                    size: 40,
+                                  ),
+                                )
                               : null,
                         ),
                       ),
@@ -238,14 +301,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             backgroundColor: Colors.white,
                             child: CircleAvatar(
                               radius: 46,
-                              backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
+                              backgroundColor: AppColors.primaryColor
+                                  .withValues(alpha: 0.1),
                               backgroundImage: _selectedImage != null
                                   ? FileImage(_selectedImage!) as ImageProvider
                                   : (widget.profile.imageUrl != null
-                                      ? NetworkImage(widget.profile.imageUrl!)
-                                      : null),
-                              child: (_selectedImage == null && widget.profile.imageUrl == null)
-                                  ? const Icon(Icons.person, size: 40, color: AppColors.primaryColor)
+                                        ? NetworkImage(widget.profile.imageUrl!)
+                                        : null),
+                              child:
+                                  (_selectedImage == null &&
+                                      widget.profile.imageUrl == null)
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 40,
+                                      color: AppColors.primaryColor,
+                                    )
                                   : null,
                             ),
                           ),
@@ -259,9 +329,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 decoration: BoxDecoration(
                                   color: AppColors.primaryColor,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                 ),
-                                child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -274,23 +351,87 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 32),
 
               // Form Fields
-              _buildTextField('Full Name', _nameController, Icons.person_outline),
-              const SizedBox(height: 16),
-              _buildTextField('Headline', _headlineController, Icons.text_fields),
+              _buildTextField(
+                'Full Name',
+                _nameController,
+                Icons.person_outline,
+              ),
               const SizedBox(height: 16),
               _buildTextField(
-                'Date of Birth', 
-                _dobController, 
+                'Headline',
+                _headlineController,
+                Icons.text_fields,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                'Date of Birth',
+                _dobController,
                 Icons.calendar_today_outlined,
                 readOnly: true,
                 onTap: () => _selectDate(context),
               ),
               const SizedBox(height: 16),
-              _buildTextField('Location', _locationController, Icons.location_on_outlined),
+              _buildTextField(
+                'Location',
+                _locationController,
+                Icons.location_on_outlined,
+              ),
+              const SizedBox(height: 8),
+              if (widget.profile.isWorker)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final latLng = await Navigator.push<LatLng>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LocationPickerScreen(
+                            initialLocation: (_latitude != null && _longitude != null)
+                                ? LatLng(_latitude!, _longitude!)
+                                : null,
+                          ),
+                        ),
+                      );
+                      if (latLng != null) {
+                        setState(() {
+                          _latitude = latLng.latitude;
+                          _longitude = latLng.longitude;
+                        });
+                      }
+                    },
+                    icon: Icon(
+                      _latitude != null ? Icons.check_circle : Icons.map,
+                      size: 16,
+                      color: _latitude != null ? Colors.green : AppColors.primaryColor,
+                    ),
+                    label: Text(
+                      _latitude != null ? 'Location Pin Set' : 'Pin on Map',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _latitude != null ? Colors.green : AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
-              _buildTextField('Interested Event (e.g. Design; Art)', _interestsController, Icons.local_activity_outlined),
+              if (widget.profile is WorkerModel) ...[
+                _buildSectionLabel('Availability'),
+                const SizedBox(height: 8),
+                _buildScheduleTile(context, widget.profile as WorkerModel),
+                const SizedBox(height: 24),
+              ],
+              _buildTextField(
+                'Interested Event (e.g. Design; Art)',
+                _interestsController,
+                Icons.local_activity_outlined,
+              ),
               const SizedBox(height: 16),
-              _buildTextField('About Me', _aboutMeController, Icons.info_outline, maxLines: 4),
+              _buildTextField(
+                'About Me',
+                _aboutMeController,
+                Icons.info_outline,
+                maxLines: 4,
+              ),
 
               const SizedBox(height: 48),
 
@@ -299,7 +440,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.textPrimaryColor, // Black button from mock
+                    backgroundColor:
+                        AppColors.textPrimaryColor, // Black button from mock
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 56),
                     shape: RoundedRectangleBorder(
@@ -307,9 +449,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   onPressed: _isUploading ? null : _saveChanges,
-                  child: _isUploading 
+                  child: _isUploading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('SAVE CHANGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      : const Text(
+                          'SAVE CHANGES',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -319,13 +467,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool readOnly = false, int maxLines = 1, VoidCallback? onTap}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    bool readOnly = false,
+    int maxLines = 1,
+    VoidCallback? onTap,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimaryColor, fontSize: 13),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimaryColor,
+            fontSize: 13,
+          ),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -335,10 +494,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           onTap: onTap,
           decoration: InputDecoration(
             hintText: label,
-            suffixIcon: Icon(icon, color: AppColors.textSecondaryColor, size: 20),
+            suffixIcon: Icon(
+              icon,
+              color: AppColors.textSecondaryColor,
+              size: 20,
+            ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade200),
@@ -354,6 +520,68 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSectionLabel(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryColor,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleTile(BuildContext context, WorkerModel worker) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AvailabilitySettingsScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.access_time_filled, color: AppColors.primaryColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Working Hours',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  '${worker.workingStart} - ${worker.workingEnd}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryColor),
+                ),
+              ],
+            ),
+            const Spacer(),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
     );
   }
 }

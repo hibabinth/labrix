@@ -27,6 +27,8 @@ class ProfileRepository {
       'portfolio_urls': worker.portfolioUrls,
       'rating': worker.rating,
       'rating_count': worker.ratingCount,
+      if (worker.idDocumentUrl != null) 'id_document_url': worker.idDocumentUrl,
+      if (worker.certDocumentUrl != null) 'cert_document_url': worker.certDocumentUrl,
     });
   }
 
@@ -88,6 +90,24 @@ class ProfileRepository {
           );
 
       return _supabase.storage.from('covers').getPublicUrl(storagePath);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<String?> uploadDocument(String userId, String bucket, File file) async {
+    try {
+      final fileExt = file.path.split('.').last;
+      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final storagePath = '$bucket/$fileName';
+
+      await _supabase.storage.from('documents').upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      return _supabase.storage.from('documents').getPublicUrl(storagePath);
     } catch (e) {
       return null;
     }

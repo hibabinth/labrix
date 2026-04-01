@@ -9,6 +9,8 @@ import '../../../data/repositories/post_repository.dart';
 import '../../../data/models/post_model.dart';
 import 'edit_profile_screen.dart';
 import 'splash_screen.dart';
+import '../../booking/view/user_bookings_screen.dart';
+import '../../booking/view/worker_bookings_screen.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -262,6 +264,33 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
                         const SizedBox(height: 28),
                       ],
 
+                      // My Activity Section
+                      _buildSectionLabel('My Activity'),
+                      const SizedBox(height: 10),
+                      _buildCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            _buildMenuTile(
+                              icon: Icons.calendar_month_outlined,
+                              title: profile.role == 'worker' ? 'Job History' : 'My Bookings',
+                              subtitle: profile.role == 'worker' ? 'Manage your completed jobs' : 'Review your past services',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => profile.role == 'worker' 
+                                        ? const WorkerBookingsScreen() 
+                                        : const UserBookingsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+
                       // Posts
                       _buildPostsSection(context, profile.id),
                     ],
@@ -427,10 +456,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required Widget child, EdgeInsetsGeometry? padding}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -443,6 +472,57 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen>
         ],
       ),
       child: child,
+    );
+  }
+
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: AppColors.primaryColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AppColors.textPrimaryColor,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade300),
+          ],
+        ),
+      ),
     );
   }
 

@@ -23,17 +23,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   void initState() {
     super.initState();
-    final chatVM = Provider.of<ChatViewModel>(context, listen: false);
-    _messageStream = chatVM.listenToRoom(widget.booking.id);
-    
-    // Fetch profiles for both participants
-    chatVM.fetchParticipantProfiles(widget.booking.userId, widget.booking.workerId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final chatVM = Provider.of<ChatViewModel>(context, listen: false);
+      _messageStream = chatVM.listenToRoom(widget.booking.id);
+      
+      // Fetch profiles for both participants
+      chatVM.fetchParticipantProfiles(widget.booking.userId, widget.booking.workerId);
+      
+      // Force initial rebuild once stream is set
+      setState(() {});
+    });
   }
 
   void _sendMessage(ChatViewModel chatVM) {
-    if (_msgController.text.trim().isEmpty) return;
-    chatVM.sendMessage(widget.booking.id, _msgController.text.trim());
+    final text = _msgController.text.trim();
+    if (text.isEmpty) return;
+    
+    // Clear immediately for "Instant" feel
     _msgController.clear();
+    
+    // Send in background
+    chatVM.sendMessage(widget.booking.id, text);
   }
 
   @override
@@ -154,35 +165,56 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               ],
                               Flexible(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isMe ? AppColors.primaryColor : Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(16),
-                                      topRight: const Radius.circular(16),
-                                      bottomLeft: isMe
-                                          ? const Radius.circular(16)
-                                          : Radius.zero,
-                                      bottomRight: isMe
-                                          ? Radius.zero
-                                          : const Radius.circular(16),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isMe ? AppColors.primaryColor : Colors.white,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: const Radius.circular(16),
+                                          topRight: const Radius.circular(16),
+                                          bottomLeft: isMe
+                                              ? const Radius.circular(16)
+                                              : Radius.zero,
+                                          bottomRight: isMe
+                                              ? Radius.zero
+                                              : const Radius.circular(16),
+                                        ),
+                                        border: isMe
+                                            ? null
+                                            : Border.all(color: Colors.grey.shade200),
+                                      ),
+                                      child: message.imageUrl != null 
+                                          ? GestureDetector(
+                                              onTap: () => _viewImage(message.imageUrl!),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  message.imageUrl!,
+                                                  width: 200,
+                                                  fit: BoxFit.cover,
+                                                  loadingBuilder: (context, child, loadingProgress) {
+                                                    if (loadingProgress == null) return child;
+                                                    return Container(
+                                                      width: 200,
+                                                      height: 150,
+                                                      color: Colors.grey.shade200,
+                                                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            )
+                                          : Text(
+                                              message.content,
+                                              style: TextStyle(
+                                                color: isMe
+                                                    ? Colors.white
+                                                    : AppColors.textPrimaryColor,
+                                              ),
+                                            ),
                                     ),
-                                    border: isMe
-                                        ? null
-                                        : Border.all(color: Colors.grey.shade200),
-                                  ),
-                                  child: Text(
-                                    message.content,
-                                    style: TextStyle(
-                                      color: isMe
-                                          ? Colors.white
-                                          : AppColors.textPrimaryColor,
-                                    ),
-                                  ),
-                                ),
                               ),
                             ],
                           ),
@@ -198,6 +230,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 child: SafeArea(
                   child: Row(
                     children: [
+                      IconButton(
+                        icon: const Icon(Icons.image_outlined, color: AppColors.primaryColor),
+                        onPressed: () => chatVM.pickAndSendImage(widget.booking.id),
+                      ),
                       Expanded(
                         child: TextField(
                           controller: _msgController,
@@ -232,10 +268,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   ),
                 ),
               ),
+              if (chatVM.isUploading)
+                Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: const Center(
+                    child: Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 12),
+                            Text('Sending photo...'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _viewImage(String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+          body: Center(child: InteractiveViewer(child: Image.network(url))),
+        ),
+      ),
     );
   }
 

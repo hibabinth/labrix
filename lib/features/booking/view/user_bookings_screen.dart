@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../viewmodel/booking_viewmodel.dart';
-import '../../reviews/view/create_review_screen.dart';
 import '../../chat/view/chat_room_screen.dart';
+import 'leave_review_dialog.dart';
 import 'package:intl/intl.dart';
+import 'booking_detail_screen.dart';
 
 class UserBookingsScreen extends StatefulWidget {
   const UserBookingsScreen({super.key});
@@ -129,9 +130,17 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
+                    image: booking.profile?.imageUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(booking.profile!.imageUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: const Icon(Icons.engineering_outlined,
-                      color: AppColors.primaryColor),
+                  child: booking.profile?.imageUrl == null
+                      ? const Icon(Icons.engineering_outlined,
+                          color: AppColors.primaryColor)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 // Details
@@ -140,13 +149,21 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Booking #${booking.id.substring(0, 6).toUpperCase()}',
+                        booking.profile?.name ?? 'Professional Service',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 4),
+                      Text(
+                        'Booking #${booking.id.substring(0, 6).toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondaryColor.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
                       Text(
                         '$dateStr • ${booking.time}',
                         style: const TextStyle(
@@ -157,22 +174,36 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                     ],
                   ),
                 ),
-                // Status Badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(booking.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    booking.status.toUpperCase(),
-                    style: TextStyle(
-                      color: _getStatusColor(booking.status),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                // Status & Price Badge
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(booking.status).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        booking.status.toUpperCase(),
+                        style: TextStyle(
+                          color: _getStatusColor(booking.status),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '\$${booking.totalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.secondaryColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -241,7 +272,6 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                     ),
                   ],
                   if (isCompleted) ...[
-                    const VerticalDivider(width: 1),
                     Expanded(
                       child: TextButton.icon(
                         style: TextButton.styleFrom(
@@ -251,17 +281,43 @@ class _UserBookingsScreenState extends State<UserBookingsScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  CreateReviewScreen(booking: booking),
+                              builder: (_) => BookingDetailScreen(booking: booking),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.star_outline,
-                            color: AppColors.primaryColor, size: 18),
-                        label: const Text('Rate',
-                            style: TextStyle(color: AppColors.primaryColor)),
+                        icon: const Icon(Icons.receipt_long_outlined,
+                            color: Colors.blueAccent, size: 18),
+                        label: const Text('Invoice',
+                            style: TextStyle(color: Colors.blueAccent)),
                       ),
                     ),
+                    if (isCompleted && !booking.isReviewed) ...[
+                      const VerticalDivider(width: 1),
+                      Expanded(
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () async {
+                            final result = await showDialog(
+                              context: context,
+                              builder: (_) => LeaveReviewDialog(
+                                bookingId: booking.id,
+                                workerId: booking.workerId,
+                                workerName: booking.profile?.name ?? 'Professional',
+                              ),
+                            );
+                            if (result == true) {
+                              _loadBookings(); // Refresh to hide rate button
+                            }
+                          },
+                          icon: const Icon(Icons.star_outline,
+                              color: AppColors.primaryColor, size: 18),
+                          label: const Text('Rate',
+                              style: TextStyle(color: AppColors.primaryColor)),
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),

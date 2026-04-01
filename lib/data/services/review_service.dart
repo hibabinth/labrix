@@ -11,7 +11,7 @@ class ReviewService {
   Future<List<ReviewModel>> getWorkerReviews(String workerId) async {
     final res = await _supabase
         .from('reviews')
-        .select()
+        .select('*, profiles(name, image_url)')
         .eq('worker_id', workerId)
         .order('created_at', ascending: false);
     return (res as List).map((e) => ReviewModel.fromJson(e)).toList();

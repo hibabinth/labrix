@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../viewmodel/booking_viewmodel.dart';
 import '../../chat/view/chat_room_screen.dart';
 import 'package:intl/intl.dart';
+import '../../../data/models/booking_model.dart';
 
 class WorkerBookingsScreen extends StatefulWidget {
   const WorkerBookingsScreen({super.key});
@@ -73,9 +74,11 @@ class _WorkerBookingsScreenState extends State<WorkerBookingsScreen>
                   color: AppColors.primaryColor,
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
-                    itemCount: bookingVM.workerBookings.length,
                     itemBuilder: (context, index) {
-                      final booking = bookingVM.workerBookings[index];
+                      if (index == 0) {
+                        return _buildEarningsHeader(bookingVM.workerBookings);
+                      }
+                      final booking = bookingVM.workerBookings[index - 1];
                       final animation = CurvedAnimation(
                         parent: _listController,
                         curve: Interval(
@@ -95,6 +98,7 @@ class _WorkerBookingsScreenState extends State<WorkerBookingsScreen>
                         ),
                       );
                     },
+                    itemCount: bookingVM.workerBookings.length + 1,
                   ),
                 ),
     );
@@ -127,6 +131,88 @@ class _WorkerBookingsScreenState extends State<WorkerBookingsScreen>
     );
   }
 
+  Widget _buildEarningsHeader(List<BookingModel> bookings) {
+    double totalEarnings = 0;
+    int completedCount = 0;
+
+    for (var b in bookings) {
+      if (b.status.toLowerCase() == 'completed') {
+        totalEarnings += b.totalPrice;
+        completedCount++;
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.secondaryColor, Color(0xFFE67E22)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondaryColor.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Earnings',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$completedCount Jobs',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '\$${totalEarnings.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Keep up the great work!',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWorkerBookingCard(booking, BookingViewModel vm) {
     final dateStr = booking.date != null
         ? DateFormat('EEE, MMM dd, yyyy').format(booking.date!)
@@ -153,29 +239,45 @@ class _WorkerBookingsScreenState extends State<WorkerBookingsScreen>
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Container(
+                 Container(
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
                     color: AppColors.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
+                    image: booking.profile?.imageUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(booking.profile!.imageUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: const Icon(Icons.person_search_outlined,
-                      color: AppColors.primaryColor),
+                  child: booking.profile?.imageUrl == null
+                      ? const Icon(Icons.person_outline,
+                          color: AppColors.primaryColor)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'New Service Request',
-                        style: TextStyle(
+                      Text(
+                        booking.profile?.name ?? 'Service Request',
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 4),
+                      Text(
+                        'Booking #${booking.id.substring(0, 6).toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondaryColor.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
                       Text(
                         '$dateStr • ${booking.time}',
                         style: const TextStyle(
@@ -186,22 +288,37 @@ class _WorkerBookingsScreenState extends State<WorkerBookingsScreen>
                     ],
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color:
-                        _getStatusColor(booking.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    booking.status.toUpperCase(),
-                    style: TextStyle(
-                      color: _getStatusColor(booking.status),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                // Status & Earnings Badge
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color:
+                            _getStatusColor(booking.status).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        booking.status.toUpperCase(),
+                        style: TextStyle(
+                          color: _getStatusColor(booking.status),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '\$${booking.totalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.secondaryColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

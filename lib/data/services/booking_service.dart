@@ -18,7 +18,7 @@ class BookingService {
   Future<List<BookingModel>> getUserBookings(String userId) async {
     final res = await _supabase
         .from('bookings')
-        .select()
+        .select('*, profiles:worker_id(*)')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
     return (res as List).map((e) => BookingModel.fromJson(e)).toList();
@@ -27,7 +27,7 @@ class BookingService {
   Future<List<BookingModel>> getWorkerBookings(String workerId) async {
     final res = await _supabase
         .from('bookings')
-        .select()
+        .select('*, profiles:user_id(*)')
         .eq('worker_id', workerId)
         .order('created_at', ascending: false);
     return (res as List).map((e) => BookingModel.fromJson(e)).toList();

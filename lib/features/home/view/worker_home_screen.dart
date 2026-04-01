@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
 import '../../../data/models/profile_model.dart';
+import '../../../data/models/worker_model.dart';
+import '../viewmodel/home_viewmodel.dart';
+import '../../../shared/widgets/announcement_banner.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../../data/models/booking_model.dart';
 import '../../chat/view/chat_room_screen.dart';
 import '../../chat/viewmodel/chat_viewmodel.dart';
+import '../../../shared/widgets/notification_bell.dart';
 import 'package:intl/intl.dart';
 
 class WorkerHomeScreen extends StatefulWidget {
@@ -24,7 +28,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   Future<void> _loadData() async {
@@ -32,6 +36,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     final profile = profileVM.currentProfile;
     if (profile != null) {
       if (mounted) setState(() => _isLoading = true);
+      
+      // ✅ NEW: Initialize announcements/categories via HomeViewModel
+      await Provider.of<HomeViewModel>(context, listen: false).initHome(profile.role);
+
       final data = await _bookingRepo.getWorkerBookings(profile.id);
       if (mounted) {
         setState(() {
@@ -98,18 +106,72 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        if (profile is WorkerModel) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: profile.isOnline ? Colors.green.withOpacity(0.2) : Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: profile.isOnline ? Colors.green : Colors.white.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.circle, color: profile.isOnline ? Colors.green : Colors.grey.shade400, size: 10),
+                                const SizedBox(width: 6),
+                                Text(
+                                  profile.isOnline ? 'ON DUTY' : 'CURRENTLY AWAY',
+                                  style: TextStyle(
+                                    color: profile.isOnline ? Colors.green : Colors.white.withOpacity(0.8),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                  onPressed: () {},
-                ),
+                if (profile is WorkerModel)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          profile.isOnline ? 'On Duty' : 'Away',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        Switch(
+                          value: profile.isOnline,
+                          activeColor: Colors.green,
+                          activeTrackColor: Colors.green.withOpacity(0.3),
+                          inactiveThumbColor: Colors.grey.shade300,
+                          inactiveTrackColor: Colors.white24,
+                          onChanged: (val) => profileVM.toggleOnlineStatus(val),
+                        ),
+                      ],
+                    ),
+                  ),
+                const NotificationBell(),
                 const SizedBox(width: 8),
               ],
+            ),
+
+            // ── Announcements ────────────────────────────────
+            Consumer<HomeViewModel>(
+              builder: (context, homeVM, child) {
+                if (homeVM.announcements.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+                return SliverToBoxAdapter(
+                  child: AnnouncementBanner(announcements: homeVM.announcements),
+                );
+              },
             ),
 
             // ── Stats Summary ───────────────────────────────────────
@@ -317,29 +379,55 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    customerProfile?.name ?? 'Customer Request',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                    Text(
+                      customerProfile?.name ?? 'Customer Request',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$dateStr at ${booking.time ?? "Anytime"}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondaryColor,
+                    if (booking.isUpcoming) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.alarm, size: 12, color: Colors.orange),
+                            const SizedBox(width: 4),
+                            Text(
+                              booking.remainingTimeSummary,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    Text(
+                      '$dateStr at ${booking.time ?? "Anytime"}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondaryColor,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Booking #${booking.id.substring(0, 6).toUpperCase()}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade400,
+                    Text(
+                      'Booking #${booking.id.substring(0, 6).toUpperCase()}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade400,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
               ),
             ),
             Container(

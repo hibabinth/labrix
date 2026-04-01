@@ -8,6 +8,9 @@ import '../viewmodel/auth_viewmodel.dart';
 import '../viewmodel/profile_viewmodel.dart';
 import 'signup_screen.dart';
 import 'role_selection_screen.dart';
+import '../../admin/view/admin_dashboard_screen.dart';
+import '../../admin/view/super_admin_dashboard_screen.dart';
+import '../../../data/models/profile_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,17 +49,34 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       final user = authVM.currentUser;
       if (user != null) {
+        // 🔥 CRITICAL: Fetch the profile
         await profileVM.loadProfile(user.id);
         if (!mounted) return;
 
-        if (profileVM.currentProfile == null) {
+        final profile = profileVM.currentProfile;
+        
+        // 🔍 DEBUG LOGS
+        print('DEBUG: Login Success for ID: ${user.id}');
+        if (profile == null) {
+          print('DEBUG: Profile is NULL - redirecting to Role Selection');
           navigator.pushReplacement(
             MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
           );
         } else {
-          navigator.pushReplacement(
-            MaterialPageRoute(builder: (_) => const MainScreen()),
-          );
+          print('DEBUG: Profile found! Role is: ${profile.role}');
+          if (profile.role == ProfileModel.roleSuperAdmin) {
+            navigator.pushReplacement(
+              MaterialPageRoute(builder: (_) => const SuperAdminDashboardScreen()),
+            );
+          } else if (profile.role == ProfileModel.roleAdmin) {
+            navigator.pushReplacement(
+              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+            );
+          } else {
+            navigator.pushReplacement(
+              MaterialPageRoute(builder: (_) => const MainScreen()),
+            );
+          }
         }
       }
     } else {
@@ -141,14 +161,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       await profileVM.loadProfile(user.id);
                       if (!context.mounted) return;
 
-                      if (profileVM.currentProfile == null) {
+                      final profile = profileVM.currentProfile;
+
+                      // 🔍 GOOGLE LOGIN DIAGNOSTICS
+                      print('DEBUG [GOOGLE]: Login Success for ID: ${user.id}');
+                      if (profile == null) {
+                        print('DEBUG [GOOGLE]: Profile is NULL');
                         navigator.pushReplacement(
                           MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
                         );
                       } else {
-                        navigator.pushReplacement(
-                          MaterialPageRoute(builder: (_) => const MainScreen()),
-                        );
+                        print('DEBUG [GOOGLE]: Profile Role is: ${profile.role}');
+                        if (profile.role == ProfileModel.roleSuperAdmin) {
+                          navigator.pushReplacement(
+                            MaterialPageRoute(builder: (_) => const SuperAdminDashboardScreen()),
+                          );
+                        } else if (profile.role == ProfileModel.roleAdmin) {
+                          navigator.pushReplacement(
+                            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+                          );
+                        } else {
+                          navigator.pushReplacement(
+                            MaterialPageRoute(builder: (_) => const MainScreen()),
+                          );
+                        }
                       }
                     }
                   } else {

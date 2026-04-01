@@ -5,7 +5,8 @@ import '../../../data/models/worker_model.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../booking/view/create_booking_screen.dart';
 import '../../reviews/viewmodel/review_viewmodel.dart';
-import '../../../data/repositories/profile_repository.dart';
+import '../../../data/models/review_model.dart';
+import 'package:intl/intl.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final WorkerModel worker;
@@ -56,73 +57,6 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
     super.dispose();
   }
 
-  void _showRatingDialog() {
-    double currentSelectedRating = 5.0;
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Rate Worker',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('How would you rate ${widget.worker.name}?'),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (i) {
-                  return GestureDetector(
-                    onTap: () =>
-                        setStateDialog(() => currentSelectedRating = i + 1.0),
-                    child: Icon(
-                      i < currentSelectedRating ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 36,
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${currentSelectedRating.toInt()} / 5',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () async {
-                final success = await ProfileRepository()
-                    .rateWorker(widget.worker.id, currentSelectedRating);
-                if (success && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Rating saved!')));
-                }
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Submit',
-                  style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,8 +76,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
               iconTheme: const IconThemeData(color: Colors.white),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.star_rate, color: Colors.amber),
-                  onPressed: _showRatingDialog,
+                  icon: const Icon(Icons.share_outlined, color: Colors.white),
+                  onPressed: () {},
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(
@@ -300,6 +234,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
                             _buildDivider(),
                             _buildDetailRow(Icons.attach_money,
                                 'Rate: ${worker.priceRange}'),
+                            _buildDivider(),
+                            _buildDetailRow(
+                                Icons.access_time, 'Hours: ${worker.workingStart} - ${worker.workingEnd}'),
                           ],
                         ),
                       ),
@@ -539,9 +476,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
         Expanded(
           child: _buildStatCard(
             icon: Icons.circle,
-            value: worker.isOnline ? 'Online' : 'Offline',
+            value: worker.isOnline ? 'On Duty' : 'Away',
             unit: 'status',
-            color: worker.isOnline ? Colors.green : Colors.grey,
+            color: worker.isOnline ? Colors.green : Colors.grey.shade400,
           ),
         ),
         const SizedBox(width: 12),
@@ -654,78 +591,85 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
     );
   }
 
-  Widget _buildReviewCard(review, int index) {
-    return AnimatedOpacity(
-      opacity: 1.0,
-      duration: Duration(milliseconds: 300 + index * 80),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+  Widget _buildReviewCard(ReviewModel review, int index) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
+                backgroundImage: (review.reviewerImageUrl != null && review.reviewerImageUrl!.isNotEmpty)
+                    ? NetworkImage(review.reviewerImageUrl!)
+                    : null,
+                child: (review.reviewerImageUrl == null || review.reviewerImageUrl!.isEmpty)
+                    ? Text(
+                        review.reviewerName?.substring(0, 1).toUpperCase() ?? '?',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryColor),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.reviewerName ?? 'Labrix User',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.textPrimaryColor,
+                      ),
+                    ),
+                    Row(
+                      children: List.generate(5, (i) {
+                        return Icon(
+                          Icons.star_rounded,
+                          color: i < review.rating ? Colors.amber : Colors.grey.shade200,
+                          size: 14,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                DateFormat('MMM dd').format(review.createdAt),
+                style: TextStyle(
+                  color: AppColors.textSecondaryColor,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          if (review.comment != null && review.comment!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              review.comment!,
+              style: const TextStyle(
+                color: AppColors.textPrimaryColor,
+                fontSize: 13,
+                height: 1.5,
+              ),
             ),
           ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Star badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.star_rounded,
-                      color: Colors.amber, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    review.rating.toString(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    review.comment != null && review.comment!.isNotEmpty
-                        ? review.comment!
-                        : 'No written comment.',
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryColor,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    review.createdAt.toLocal().toString().split(' ')[0],
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

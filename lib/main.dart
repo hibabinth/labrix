@@ -9,8 +9,10 @@ import 'features/home/viewmodel/home_viewmodel.dart';
 import 'features/booking/viewmodel/booking_viewmodel.dart';
 import 'features/chat/viewmodel/chat_viewmodel.dart';
 import 'features/reviews/viewmodel/review_viewmodel.dart';
+import 'features/admin/viewmodel/admin_viewmodel.dart';
 import 'features/auth/view/splash_screen.dart';
 import 'features/notifications/services/notification_service.dart';
+import 'features/notifications/viewmodel/notification_viewmodel.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +47,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BookingViewModel()),
         ChangeNotifierProvider(create: (_) => ChatViewModel()),
         ChangeNotifierProvider(create: (_) => ReviewViewModel()),
+        ChangeNotifierProvider(create: (_) => AdminViewModel()),
+        ChangeNotifierProvider(create: (_) => NotificationViewModel()),
       ],
       child: MaterialApp(
         title: 'Labrix - Service Marketplace',

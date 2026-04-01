@@ -5,6 +5,9 @@ import '../viewmodel/auth_viewmodel.dart';
 import '../viewmodel/profile_viewmodel.dart';
 import 'login_screen.dart';
 import 'role_selection_screen.dart';
+import '../../admin/view/admin_dashboard_screen.dart';
+import '../../admin/view/super_admin_dashboard_screen.dart';
+import '../../../data/models/profile_model.dart';
 import '../../../core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,23 +38,43 @@ class _SplashScreenState extends State<SplashScreen> {
         listen: false,
       );
       await profileViewModel.loadProfile(user.id);
-
       if (!mounted) return;
 
-      if (profileViewModel.currentProfile == null) {
+      final profile = profileViewModel.currentProfile;
+      
+      // 🔍 SPLASH DIAGNOSTICS
+      print('DEBUG [SPLASH]: Found User with ID: ${user.id}');
+      if (profile == null) {
+        print('DEBUG [SPLASH]: Profile is NULL for this ID');
+      } else {
+        print('DEBUG [SPLASH]: Profile Role is: ${profile.role}');
+      }
+
+      if (profile == null) {
         // No profile exists, go to Role Selection
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
         );
+      } else if (profile.role == ProfileModel.roleSuperAdmin) {
+        // Direct to Super Admin Panel
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const SuperAdminDashboardScreen()),
+        );
+      } else if (profile.role == ProfileModel.roleAdmin) {
+        // Direct to Admin Panel
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+        );
       } else {
-        // Profile exists, go to Home
+        // Standard User/Worker flow
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                const MainScreen(),
-          ), // TODO: Replace with Home
+            builder: (context) => const MainScreen(),
+          ),
         );
       }
     } else {

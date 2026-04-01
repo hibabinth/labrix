@@ -6,6 +6,8 @@ class ReviewModel {
   final int rating;
   final String? comment;
   final DateTime createdAt;
+  final String? reviewerName;
+  final String? reviewerImageUrl;
 
   ReviewModel({
     required this.id,
@@ -15,6 +17,8 @@ class ReviewModel {
     required this.rating,
     this.comment,
     required this.createdAt,
+    this.reviewerName,
+    this.reviewerImageUrl,
   });
 
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
@@ -25,7 +29,9 @@ class ReviewModel {
       workerId: json['worker_id'],
       rating: json['rating'],
       comment: json['comment'],
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
+      reviewerName: json['profiles']?['name'],
+      reviewerImageUrl: json['profiles']?['image_url'],
     );
   }
 

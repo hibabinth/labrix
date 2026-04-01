@@ -1,4 +1,9 @@
 class ProfileModel {
+  static const String roleUser = 'user';
+  static const String roleWorker = 'worker';
+  static const String roleAdmin = 'admin';
+  static const String roleSuperAdmin = 'super_admin';
+
   final String id;
   final String role;
   final String name;
@@ -14,6 +19,9 @@ class ProfileModel {
   final String? coverImageUrl;
   final String? headline;
   final String? dob;
+  final String? email;
+  final double? latitude;
+  final double? longitude;
 
   ProfileModel({
     required this.id,
@@ -31,6 +39,9 @@ class ProfileModel {
     this.coverImageUrl,
     this.headline,
     this.dob,
+    this.email,
+    this.latitude,
+    this.longitude,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -50,6 +61,9 @@ class ProfileModel {
       coverImageUrl: json['cover_image_url'],
       headline: json['headline'],
       dob: json['dob'],
+      email: json['email'],
+      latitude: json['latitude']?.toDouble(),
+      longitude: json['longitude']?.toDouble(),
     );
   }
 
@@ -70,8 +84,15 @@ class ProfileModel {
       if (coverImageUrl != null) 'cover_image_url': coverImageUrl,
       if (headline != null) 'headline': headline,
       if (dob != null) 'dob': dob,
+      if (email != null) 'email': email,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 
   Map<String, dynamic> toJson() => toProfileJson();
+
+  bool get isAdmin => role == roleAdmin || role == roleSuperAdmin;
+  bool get isSuperAdmin => role == roleSuperAdmin;
+  bool get isWorker => role == roleWorker;
 }

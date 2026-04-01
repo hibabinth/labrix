@@ -20,7 +20,10 @@ class WorkerService {
   }
 
   Future<List<Map<String, dynamic>>> getAllWorkers() async {
-    final res = await _supabase.from('workers').select('*, profiles(*)');
+    final res = await _supabase
+        .from('workers')
+        .select('*, profiles(*)')
+        .eq('is_verified', true);
     return List<Map<String, dynamic>>.from(res);
   }
 }

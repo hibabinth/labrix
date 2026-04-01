@@ -22,19 +22,48 @@ class WorkerCard extends StatelessWidget {
         leading: CircleAvatar(
           radius: 28,
           backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
-          child: const Icon(
-            Icons.person,
-            color: AppColors.primaryColor,
-            size: 28,
-          ),
+          backgroundImage: (worker.imageUrl != null && worker.imageUrl!.isNotEmpty)
+              ? NetworkImage(worker.imageUrl!)
+              : null,
+          child: (worker.imageUrl == null || worker.imageUrl!.isEmpty)
+              ? const Icon(Icons.person, color: AppColors.primaryColor, size: 28)
+              : null,
         ),
-        title: Text(
-          worker.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: AppColors.textPrimaryColor,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                worker.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.textPrimaryColor,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: worker.isOnline ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, color: worker.isOnline ? Colors.green : Colors.grey, size: 8),
+                  const SizedBox(width: 4),
+                  Text(
+                    worker.isOnline ? 'Online' : 'Away',
+                    style: TextStyle(
+                      color: worker.isOnline ? Colors.green : Colors.grey,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,7 +71,7 @@ class WorkerCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${worker.category} • ${worker.experienceYears}y exp',
-              style: const TextStyle(color: AppColors.textSecondaryColor),
+              style: const TextStyle(color: AppColors.textSecondaryColor, fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
@@ -50,6 +79,7 @@ class WorkerCard extends StatelessWidget {
               style: const TextStyle(
                 color: AppColors.primaryColor,
                 fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ],
@@ -57,6 +87,7 @@ class WorkerCard extends StatelessWidget {
         trailing: const Icon(
           Icons.chevron_right,
           color: AppColors.textSecondaryColor,
+          size: 20,
         ),
         onTap: () {
           Navigator.push(

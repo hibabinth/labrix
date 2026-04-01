@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../home/view/main_screen.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import '../../home/view/main_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_textfield.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../auth/viewmodel/profile_viewmodel.dart';
 import '../../auth/viewmodel/auth_viewmodel.dart';
 import '../../../data/models/worker_model.dart';
+import '../../../data/models/category_model.dart';
 
 class WorkerProfileSetupScreen extends StatefulWidget {
   const WorkerProfileSetupScreen({super.key});
@@ -23,14 +26,10 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
   final _experienceController = TextEditingController();
   final _priceRangeController = TextEditingController();
 
-  String _selectedCategory = 'Plumbing';
-  final List<String> _categories = [
-    'Plumbing',
-    'Electrician',
-    'Cleaning',
-    'Welding',
-    'Carpentry',
-  ];
+  String _selectedCategory = WorkerCategory.all.first.name;
+
+  File? _idFile;
+  File? _certFile;
 
   @override
   void dispose() {
@@ -62,6 +61,16 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     final userId = authVM.currentUser?.id;
     if (userId == null) return;
 
+    String? idUrl;
+    String? certUrl;
+
+    if (_idFile != null) {
+      idUrl = await profileVM.uploadIDDocument(userId, _idFile!);
+    }
+    if (_certFile != null) {
+      certUrl = await profileVM.uploadCertDocument(userId, _certFile!);
+    }
+
     final worker = WorkerModel(
       id: userId,
       role: 'worker',
@@ -73,6 +82,8 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
       priceRange: priceRange,
       isOnline: true,
       isVerified: false,
+      idDocumentUrl: idUrl,
+      certDocumentUrl: certUrl,
     );
 
     final success = await profileVM.saveWorkerProfile(worker);
@@ -81,10 +92,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     if (success) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) =>
-              const MainScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,7 +134,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _selectedCategory,
+              value: _selectedCategory,
               decoration: InputDecoration(
                 prefixIcon: const Icon(
                   Icons.category,
@@ -138,8 +146,19 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 filled: true,
                 fillColor: Colors.white,
               ),
-              items: _categories
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+              items: WorkerCategory.all
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c.name,
+                      child: Row(
+                        children: [
+                          Text(c.emoji, style: const TextStyle(fontSize: 18)),
+                          const SizedBox(width: 10),
+                          Text(c.name),
+                        ],
+                      ),
+                    ),
+                  )
                   .toList(),
               onChanged: (val) {
                 if (val != null) setState(() => _selectedCategory = val);
@@ -155,8 +174,20 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
             const SizedBox(height: 16),
             CustomTextField(
               controller: _priceRangeController,
-              hintText: 'Rate (e.g. \$20/hr) *',
+              hintText: 'Rate (e.g. ₹500/hr) *',
               prefixIcon: Icons.attach_money,
+            ),
+            const SizedBox(height: 24),
+            _buildUploadSection(
+              title: 'Identity Document (ID Card/Aadhar/PAN)',
+              file: _idFile,
+              onTap: () => _pickFile(true),
+            ),
+            const SizedBox(height: 16),
+            _buildUploadSection(
+              title: 'Professional Certificate (Optional)',
+              file: _certFile,
+              onTap: () => _pickFile(false),
             ),
             const SizedBox(height: 32),
             CustomButton(
@@ -168,5 +199,66 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildUploadSection({
+    required String title,
+    required File? file,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  file != null ? Icons.check_circle : Icons.upload_file,
+                  color: file != null ? Colors.green : AppColors.primaryColor,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    file != null ? file.path.split('/').last : 'Click to upload',
+                    style: TextStyle(
+                      color: file != null ? Colors.black : Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickFile(bool isID) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'png', 'pdf'],
+    );
+    if (result != null) {
+      setState(() {
+        if (isID) {
+          _idFile = File(result.files.single.path!);
+        } else {
+          _certFile = File(result.files.single.path!);
+        }
+      });
+    }
   }
 }

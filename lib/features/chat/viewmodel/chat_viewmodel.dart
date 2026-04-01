@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/message_model.dart';
@@ -11,6 +13,10 @@ class ChatViewModel extends ChangeNotifier {
   final ChatRepository _chatRepository = ChatRepository();
   final ProfileRepository _profileRepository = ProfileRepository();
   final SupabaseClient _supabase = Supabase.instance.client;
+  final ImagePicker _picker = ImagePicker();
+
+  bool _isUploading = false;
+  bool get isUploading => _isUploading;
 
   final Map<String, ProfileModel> _participantProfiles = {};
   Map<String, ProfileModel> get participantProfiles => _participantProfiles;
@@ -23,6 +29,22 @@ class ChatViewModel extends ChangeNotifier {
 
   List<BookingModel> _activeChats = [];
   List<BookingModel> get activeChats => _activeChats;
+
+  // 🔄 Live stream of active conversations (Bookings)
+  Stream<List<BookingModel>> getActiveChatsStream(String userId, String role) {
+    final column = role == 'worker' ? 'worker_id' : 'user_id';
+    
+    return _supabase
+        .from('bookings')
+        .stream(primaryKey: ['id'])
+        .eq(column, userId)
+        .order('created_at', ascending: false)
+        .map((data) {
+          final list = data.map((e) => BookingModel.fromJson(e)).toList();
+          _activeChats = list; // Sync local list for profile lookups
+          return list;
+        });
+  }
 
   // Load bookings that are accepted or in progress to show as active chats
   Future<void> loadActiveChats(String userId, String role) async {
@@ -71,12 +93,50 @@ class ChatViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> pickAndSendImage(String bookingId) async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70, // Compression for mobile performance
+    );
+
+    if (image == null) return;
+
+    _isUploading = true;
+    notifyListeners();
+
+    try {
+      final imageUrl = await _chatRepository.uploadChatImage(bookingId, File(image.path));
+      
+      if (imageUrl != null) {
+        final senderId = _supabase.auth.currentUser?.id;
+        if (senderId == null) return;
+
+        final message = MessageModel(
+          id: const Uuid().v4(),
+          bookingId: bookingId,
+          senderId: senderId,
+          content: '', // Empty content for image-only messages
+          imageUrl: imageUrl,
+        );
+
+        await _chatRepository.sendMessage(message);
+      }
+    } catch (e) {
+      debugPrint('Failed to send image: $e');
+    } finally {
+      _isUploading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchParticipantProfiles(String userId, String workerId) async {
     // Only fetch if not already in cache to save requests
+    bool changed = false;
     if (!_participantProfiles.containsKey(userId)) {
       final userProfile = await _profileRepository.getProfile(userId);
       if (userProfile != null) {
         _participantProfiles[userId] = userProfile;
+        changed = true;
       }
     }
 
@@ -84,29 +144,36 @@ class ChatViewModel extends ChangeNotifier {
       final workerProfile = await _profileRepository.getProfile(workerId);
       if (workerProfile != null) {
         _participantProfiles[workerId] = workerProfile;
+        changed = true;
       }
     }
-    notifyListeners();
+    
+    if (changed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
+    }
   }
 
   ProfileModel? getOtherParticipantProfile(String bookingId, String currentUserId, {BookingModel? booking}) {
-    final targetBooking = booking ?? _activeChats.firstWhere(
-      (b) => b.id == bookingId,
-      orElse: () => throw Exception('Booking not found in active chats'),
-    );
-    
-    final otherId = targetBooking.userId == currentUserId ? targetBooking.workerId : targetBooking.userId;
-    return _participantProfiles[otherId];
+    try {
+      final targetBooking = booking ?? _activeChats.firstWhere(
+        (b) => b.id == bookingId,
+      );
+      
+      final otherId = targetBooking.userId == currentUserId ? targetBooking.workerId : targetBooking.userId;
+      return _participantProfiles[otherId];
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> deleteChat(String bookingId) async {
     try {
-      await _chatRepository.deleteChat(bookingId);
-      // We don't necessarily want to remove the booking from list, just clear messages
-      // But user said "chat deletion", usually implies removing from list.
-      // If we want to hide it, we'd need an 'is_hidden' flag in DB.
-      // For now, let's just delete the messages.
+      // 1. Optimistic Update: Remove from local list immediately
+      _activeChats.removeWhere((b) => b.id == bookingId);
       notifyListeners();
+
+      // 2. Perform DB deletion
+      await _chatRepository.deleteChat(bookingId);
     } catch (e) {
       debugPrint('Failed to delete chat: $e');
     }
